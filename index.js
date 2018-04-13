@@ -144,6 +144,55 @@ class Match {
         this.finished = false;
         this.stage = '';
     }
+    addResult(hostGoals, guestGoals) {
+        this.finished = true;
+        this.hostGoals = hostGoals;
+        this.guestGoals = guestGoals;
+        this.updateTeamsResults();
+    }
+    isHost(name) {
+        if (this.host.name === name) return true;
+        else return false;
+    }
+    isDraw() {
+        if (this.finished) return this.hostGoals === this.guestGoals;
+        return -1;
+    }
+    updateTeamsResults() {
+        let {host, guest, hostGoals, guestGoals} = this;
+        
+        for (let t of [host.name, guest.name]) {
+            if (this.isHost(t)) {
+                host.matches.push(this);
+                host.goalsScored += hostGoals;
+                host.goalsLost += guestGoals;
+    
+                if (this.isDraw()) {
+                    host.points += 1;
+                    host.draw += 1;
+                } else if (hostGoals > guestGoals) {
+                    host.points += 3;
+                    host.won += 1;
+                } else {
+                    host.lost += 1;
+                };
+            } else {
+                guest.matches.push(this);
+                guest.goalsScored += guestGoals;
+                guest.goalsLost += guestGoals;
+    
+                if (this.isDraw()) {
+                    guest.points += 1;
+                    guest.draw += 1;
+                } else if (hostGoals < guestGoals) {
+                    guest.points += 3;
+                    guest.won += 1;
+                } else {
+                    guest.lost += 1;
+                };
+            };
+        };
+    }
 }
 
 class Round {
@@ -151,6 +200,13 @@ class Round {
         if (!matches) throw Error(ERRORS.LACK_OF_MATCHES_IN_ROUND[lang]);
         this.matches = matches;
         this.finished = false;
+    }
+    getNextMatch() {
+        if (this.finished === false) {
+            let found = this.matches.find(v => !v.finished);
+            if (!found) this.finished = false;
+            else return found;
+        } else return false;
     }
 
 }
