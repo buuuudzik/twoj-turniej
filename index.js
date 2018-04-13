@@ -2,10 +2,25 @@
 
 // USEFUL FUNCTIONS
 function hide(objJQ) {
-    if (!objJQ.hasClass('hidden')) objJQ.addClass('hidden');
+    if (objJQ.length > 1) {
+        for (let o in objJQ) {
+            if (!objJQ.hasClass('hidden')) objJQ.addClass('hidden');
+        };
+    } else {
+        if (!objJQ.hasClass('hidden')) objJQ.addClass('hidden');
+    };
 };
 function show(objJQ) {
-    if (objJQ.hasClass('hidden')) objJQ.removeClass('hidden');
+    if (objJQ.length > 1) {
+        for (let o in objJQ) {
+            if (objJQ.hasClass('hidden')) objJQ.removeClass('hidden');
+        };
+    } else {
+        if (objJQ.hasClass('hidden')) objJQ.removeClass('hidden');
+    };
+};
+function showAndHide(showObjJQ, hideObjJQ) {
+    hide(hideObjJQ); show(showObjJQ);
 };
 function goToPage(objJQ) {
     DOM.allPagesJQ.each(function() {hide($(this))});
@@ -35,6 +50,10 @@ const ERRORS = {
     LACK_OF_TEAMS_IN_TOUR: { // CHECK IF NECESSARY
         en: 'You cannot create a tour without teams',
         pl: 'Nie można zdefiniować turnieju bez podania drużyn'
+    },
+    LACK_OF_MATCHES_IN_ROUND: {
+        en: 'You cannot create a round without matches',
+        pl: 'Nie można zdefiniować rundy bez podania meczów'
     }
 }
 
@@ -62,6 +81,7 @@ const DOM = {
     addTeamBtnJQ: $('.add-team'),
     addedTeamsJQ: $('.added-teams'),
     readyTeamsBtnJQ: $('.ready-teams'),
+    tourNameJQ: $('.tour-name'),
     selectTourTypeJQ: $('#tour-type'),
     selectLeagueJQ: $('.league-type'),
     selectCupJQ: $('.cup-type'),
@@ -121,31 +141,50 @@ class Match {
         this.guest = guest;
         this.hostGoals = 0;
         this.guestGoals = 0;
-        this.played = false;
+        this.finished = false;
+        this.stage = '';
     }
+}
+
+class Round {
+    constructor(matches) {
+        if (!matches) throw Error(ERRORS.LACK_OF_MATCHES_IN_ROUND[lang]);
+        this.matches = matches;
+        this.finished = false;
+    }
+
 }
 
 
 class League {
-    constructor(teams) {
+    constructor(teams, leagueRevenge) {
         if (!teams) throw Error(ERRORS.LACK_OF_TEAMS_IN_LEAGUE[lang]);
 
         this.teams = teams;
+        this.leagueRevenge = leagueRevenge;
         this.rounds = [];
-        this.played = false;
+        this.finished = false;
+        this.generateLeague();
     }
 
     generateLeague() {
-
+        for(let r of generateLeague(this.teams.length, this.teams)) {
+            let matches = [];
+            for (let m of r) matches.push(new Match(m[0], m[1]));
+            this.rounds.push(new Round(matches));
+        };
     }
 }
 
 
 class Cup {
-    constructor(teams) {
+    constructor(teams, cupRevenge) {
         if (!teams) throw Error(ERRORS.LACK_OF_TEAMS_IN_CUP[lang]);
 
-        this.played = false;
+        this.teams = teams;
+        this.cupRevenge = cupRevenge;
+        this.rounds = []; // GENERATE NEW ROUND AT END OF LAST UNTIL FINAL
+        this.finished = false;
     }
 
     generateCup() {
@@ -155,17 +194,18 @@ class Cup {
 
 
 class Tour {
-    constructor(name, type) {
+    constructor() {
         // SPRAWDŹ CZY W localStorage jest kopia jakiejś poprzedniej rozgrywki?
         // JEŚLI TAK PRZEKAŻ JĄ DO APLIKACJI I ODTWÓRZ STAN ROZGRYWKI
         // JEŚLI NIE WYŚWIETL OKNO DEFINIOWANIA DRUŻYNY 
-        this.name;
+        this.name = '';
+        this.type = 'l';
+        this.leagueRevenge = false;
+        this.cupRevenge = false;
         this.teams = [];
-
-        tourEmitter.listen('deletedTeam', (name) => {
-            this.teams.splice(this.teams.findIndex(t => t.name === name), 1);
-            if (this.teams.length < 2) hide(DOM.readyTeamsBtnJQ);
-        });
+        this.stages = [];
+        this.finished = false;
+        tourEmitter.listen('deletedTeam', (name) => this.removeTeam(name));
     }
     addTeam(newTeam) {
         if (!newTeam) return alert(ALERTS.LACK_OF_NAME[lang]);
@@ -174,8 +214,9 @@ class Tour {
         if (this.teams.length >= 2) show(DOM.readyTeamsBtnJQ);
         this.showOnlyPossibleTypes();   
     }
-    removeTeam(team) {
-
+    removeTeam(name) {
+        this.teams.splice(this.teams.findIndex(t => t.name === name), 1);
+        if (this.teams.length < 2) hide(DOM.readyTeamsBtnJQ);
     }
     canPlayCup() {
         let numberOfTeams = this.teams.length;
@@ -184,31 +225,37 @@ class Tour {
     }
     showOnlyPossibleTypes() {
         let {selectCupJQ, cupRevengeJQ, cupRevengeValueJQ} = DOM;
-        if (this.canPlayCup()) {
-            show(selectCupJQ);
-        } else {
-            hide(selectCupJQ);
-            DOM.cupRevengeJQ[0].checked = false;
-            hide(cupRevengeJQ);
-        };
-        this.toggleRevengeChexboxes();
+        if (this.canPlayCup()) show(selectCupJQ);
+        else hide(selectCupJQ);
+        this.toggleRevengeCheckboxes();
     }
-    toggleRevengeChexboxes() {
+    toggleRevengeCheckboxes() {
         let {selectTourTypeJQ, cupRevengeJQ, leagueRevengeJQ} = DOM;
         let selectedType = selectTourTypeJQ.val();
 
-        if (selectedType === 'Liga') {
-            show(leagueRevengeJQ);
-            hide(cupRevengeJQ);
+        if (selectedType === 'l') {
+            showAndHide(leagueRevengeJQ, cupRevengeJQ);
             cupRevengeJQ[0].checked = false;
-        } else if (selectedType === 'Puchar') {
-            show(cupRevengeJQ);
-            hide(leagueRevengeJQ);
+        } else if (selectedType === 'c') {
+            showAndHide(cupRevengeJQ, leagueRevengeJQ);
             leagueRevengeJQ[0].checked = false;
-        } else if (selectedType === 'Liga+Puchar') {
+        } else if (selectedType === 'lc') {
             show(leagueRevengeJQ);
             if (this.canPlayCup()) show(cupRevengeJQ);
             else hide(cupRevengeJQ);
+        };
+    }
+    startTour() {
+        // GENERATE CUP (1ST STAGE OR ONLY)
+        let {type, teams, leagueRevenge, cupRevenge} = this;
+
+        if (type === 'l' || type === 'lp') this.stages.push(new League(teams, leagueRevenge));
+        else this.stages.push(new Cup(teams, cupRevenge));
+
+        switch(this.type) {
+            case 'l': goToPage(DOM.leagueViewPageJQ);
+            case 'c': goToPage(DOM.cupViewPageJQ);
+            case 'lc': goToPage(DOM.leagueViewPageJQ);
         };
     }
 }
@@ -235,5 +282,20 @@ DOM.backToAddingTeamsJQ.on('click', function() {
 });
 
 DOM.selectTourTypeJQ.on('change', function() {
-    tour.toggleRevengeChexboxes();
+    tour.toggleRevengeCheckboxes();
 });
+
+DOM.startTourBtnJQ.on('click', function() {
+    // POBIERZ WARTOŚCI Z PÓL
+    let {tourNameJQ, selectTourTypeJQ, cupRevengeJQ, leagueRevengeJQ} = DOM;
+    tour.name = tourNameJQ.val() || 'Puchar Króla';
+    tour.type = selectTourTypeJQ.val();
+    tour.leagueRevenge = leagueRevengeJQ[0].checked;
+    tour.cupRevenge = leagueRevengeJQ[0].checked;
+    tour.startTour();
+});
+
+// PO ZAKOŃCZENIU LIGI, SPRAWDZENIE CZY TRZEBA WYGENEROWAĆ JESZCZE FAZĘ PUCHAROWĄ
+
+// INNE POMYSŁY
+// ZRÓB FAZĘ GRUPOWĄ
