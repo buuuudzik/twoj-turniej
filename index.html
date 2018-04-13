@@ -13,21 +13,36 @@
 <body>
     <div id="top-bar"></div>
 
-    <div id="adding-teams">
-        <input type="text" min="3" class="team-name"></input><input type="button" class="add-team" value="Add"><input type="button" class="ready-teams" value="Ready?">
+    <div id="adding-teams" class="page">
+        <input type="text" min="3" class="team-name" placeholder="np.Giganci"></input><input type="button" class="add-team" value="Add"><input type="button" class="ready-teams hidden" value="Ready?">
         <div class="table">
             <table class="added-teams">
                 <thead>
-                    <tr><th>Name</th><th></th><th>Delete</th></tr>
+                    <tr><th>Name</th><th>Delete</th></tr>
                 </thead>
                 <tbody></tbody>
             </table>
         </div>
     </div>
-    <div id="tour-settings" class="hidden"></div>
-    <div id="league-view" class="hidden"></div>
-    <div id="cup-view" class="hidden"></div>
-    <div id="stats-view" class="hidden"></div>
+
+    <div id="tour-settings" class="page hidden">
+        <input type="button" class="back-to-teams" value="Wstecz">
+        <input type="button" class="start-tour" value="Start tour">
+        <input type="text" min="3" class="tour-name" placeholder="np.Puchar Burmistrza Tczewa"></input>
+        <select name="tour-type" id="tour-type">
+            <option value="Liga" class="league-type">Liga</option>
+            <option value="Puchar" class="cup-type">Puchar</option>
+            <option value="Liga+Puchar" class="league-cup-type">Liga+Puchar</option>
+        </select>
+        <div class="league-revenge"><label for="league-revenge-value">Rewanże w lidze?</label><input type="checkbox" id="league-revenge-value" class="league-revenge-value"></div>
+        <div class="cup-revenge"><label for="cup-revenge-value">Rewanże w pucharze?</label><input type="checkbox" id="cup-revenge-value" class="cup-revenge-value"></div>
+    </div>
+
+    <div id="league-view" class="page hidden"></div>
+
+    <div id="cup-view" class="page hidden"></div>
+
+    <div id="stats-view" class="page hidden"></div>
 
     <script src="index.js"></script>
 </body>
