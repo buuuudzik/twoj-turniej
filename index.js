@@ -196,7 +196,7 @@ class Team {
 
 // ADD CHANGABLE POINTS FOR WIN/DRAW/LOOSE EG. IN FOOTBALL 3/1/0
 class Match {
-    constructor(host, guest) {
+    constructor(host, guest, stage) {
         if (!host || !guest) throw Error(ERRORS.LACK_OF_TEAMS_IN_MATCH[lang]);
 
         this.host = host;
@@ -228,7 +228,7 @@ class Match {
         else {
             if (this.isHost(name)) return this.hostGoals > this.guestGoals;
             else return this.hostGoals < this.guestGoals;
-        }
+        };
     }
     updateTeamsResults() {
         let {host, guest, hostGoals, guestGoals} = this;
@@ -273,6 +273,46 @@ class Match {
     }
 }
 
+
+class Tie {
+    constructor(match1, match2) {
+        this.matches = [];
+        this.finished = false;
+
+        tourEmitter.listen('finishedMatch', (match) => {
+            if (!this.finished) return;
+            if (this.matches[this.matches.length-1].finished) this.finished = true;
+        });
+    }
+    whoWon() {
+        if (this.matches.every(v => v.finished)) {
+            // licz bramki u siebie i na wyjeździe
+            let [m1, m2] = this.matches;
+            let t1 = {name: m1.host, goalsScored: 0, goalsLost: 0};
+            let t2 = {name: m1.guest, goalsScored: 0, goalsLost: 0};
+
+            for (let m of this.matches) {
+                //if ()
+                t1.goalsScored += m.host.goalsScored;
+                t1.goalsLost += m.host.goalsLost;
+                t2.goalsScored += 2*(m.guest.goalsScored);
+                t2.goalsLost += m.guest.goalsLost;
+            };
+            
+
+        } else return false;
+    }
+    getNextMatch() {
+        if (this.finished === false) {
+            let found = this.matches.find(v => !v.finished);
+            if (!found) this.finished = false;
+            else return found;
+        } else return false;
+    }
+
+}
+
+
 class Round {
     constructor(matches) {
         if (!matches) throw Error(ERRORS.LACK_OF_MATCHES_IN_ROUND[lang]);
@@ -280,6 +320,7 @@ class Round {
         this.finished = false;
 
         tourEmitter.listen('finishedMatch', (match) => {
+            if (!this.finished) return;
             if (this.matches[this.matches.length-1].finished) this.finished = true;
         });
     }
@@ -321,7 +362,12 @@ class League {
         for (let i=1; i<=repeatCount; i++) {
  
             let generatedMatches = generateLeague(this.teams.length, this.teams);
-            if (i === 2) generatedMatches.reverse();
+            if (i === 2) {
+                generatedMatches.reverse();
+                for (let r of generatedMatches) {
+                    for (let m of r) m.reverse();
+                };
+            };
 
             for(let r of generatedMatches) {
                 let matches = [];
@@ -385,12 +431,30 @@ class Cup {
         this.cupRevenge = cupRevenge;
         this.rounds = []; // GENERATE NEW ROUND AT END OF LAST UNTIL FINAL
         this.finished = false;
+        this.generateCup();
     }
 
     generateCup() {
         // 1, 2, 4, 8, 16, bez 32, 64
         // liczba drużyn/2 np. gdy 32 drużyny wtedy wychodzi 16
+        let numberOfteams = this.teams.length;
+        if (numberOfteams === 64) {
 
+        } else if (numberOfteams === 32) {
+
+        } else if (numberOfteams === 16) {
+
+        } else if (numberOfteams === 8) {
+
+        } else if (numberOfteams === 4) {
+
+        } else if (numberOfteams === 2) {
+
+        };
+    }
+
+    generateNextRound() {
+        this.rounds.push(new Match);
     }
 
     getNextMatch() {
@@ -569,3 +633,9 @@ DOM.addResultBtnJQ.on('click', function() {
 // ZAPISUJ W LOCALSTORAGE UŻYTE NAZWY I SYGERUJ JE PODCZAS DODAWANIA GRACZY
 
 // przyciski popularnych wyników lub -/+ lub 1-5 żeby ułatwić wprowadzanie wyniku
+
+// cofnij 1 mecz
+
+// wyczyść stan rozgrywki w pucharze, lidze lub całym turnieju (może być przydatne również podczas wczytywania backupu)
+
+// obsługa karnych w pucharze, przy remisie w meczu lub dwumeczu
