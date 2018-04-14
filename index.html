@@ -39,7 +39,26 @@
         <div class="cup-revenge"><label for="cup-revenge-value">Rewanże w pucharze?</label><input type="checkbox" id="cup-revenge-value" class="cup-revenge-value"></div>
     </div>
 
-    <div id="league-view" class="page hidden"></div>
+    <div id="league-view" class="page hidden">
+        <div class="adding-result"><span class="host"></span><input type="number" class="host-goals">:<input type="number" class="guest-goals"><span class="guest"></span><input type="button" class="add-result" value="Add result"></div>
+        <div class="table">
+            <table class="league-fixtures">
+                <thead>
+                    <tr><th>Host</th><th>Result</th><th>Guest</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="table">
+            <table class="league-table">
+                <thead>
+                    <tr><th>#</th><th>Team</th><th>Points</th><th>Wins</th><th>Draws</th><th>Lost</th><th>G+</th><th>G-</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
 
     <div id="cup-view" class="page hidden"></div>
 
