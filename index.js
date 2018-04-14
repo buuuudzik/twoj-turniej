@@ -26,6 +26,9 @@ function goToPage(objJQ) {
     DOM.allPagesJQ.each(function() {hide($(this))});
     show(objJQ);
 };
+function intFromText(objJQ) {
+    return parseInt(objJQ.text());
+};
 
 // CHOOSE A LANGUAGE
 let lang = 'en';
@@ -172,13 +175,24 @@ class Team {
         let goalsLost = this.onLeagueTable.find('.goals-lost');
         goalsLost.text(this.goalsScored);
 
-        // let lastMatch = this.getLastMatch();
+        let lastMatch = this.getLastMatch();
+        
+        if (lastMatch.isDraw() || lastMatch.isAWinOf(this.name)) {
+            console.log('was draw or win');
+            let aboveRow = this.onLeagueTable.prev();
+            let abovePoints = parseInt(aboveRow.find('.points').text());
+            let aboveWins = parseInt(aboveRow.find('.wins'));
+            let aboveDraws = parseInt(aboveRow.find('.draws'));
+            let aboveLost = parseInt(aboveRow.find('.lost'));
+            let aboveGoalsScored = parseInt(aboveRow.find('.goals-scored'));
+            let aboveGoalsLost = parseInt(aboveRow.find('.goals-lost'));
 
-        // if (lastMatch.isDraw() || lastMatch.isAWinOf(this.name)) {
-
-        // } else {
-        //     // zobacz czy nie musisz przesunąć poniżej poprzednika, i patrz tylko na różnicę goli
-        // };
+            if (abovePoints < points) aboveRow.after(this.onLeagueTable);
+        } else {
+            // zobacz czy nie musisz przesunąć poniżej poprzednika, i patrz tylko na różnicę goli
+            let belowRow = this.onLeagueTable.next();
+            console.log('was lost');
+        };
 
         // update wszystkich numerków w tabeli
 
@@ -299,7 +313,11 @@ class League {
         this.generateLeague();
 
         tourEmitter.listen('finishedMatch', (match) => {
+            if (this.finished === true) return;
             if (this.rounds[this.rounds.length-1].finished) this.finished = true;
+            setTimeout(() => {
+                this.sortLeagleTable();
+            }, 50);
         });
     }
 
@@ -321,6 +339,38 @@ class League {
         let nextMatch = this.getNextMatch();
         if (nextMatch) nextMatch.show//
         else ; // UKRYJ FORMULARZ ADDING MATCH RESULT
+    }
+    sortLeagleTable() {
+        let tbody = DOM.leagueTableJQ.find('tbody');
+        tbody.find('tr').sort(function(a, b) {
+            // ONLY DESC DIRECTION
+            let pointsDelta = intFromText($('td:nth(2)', b)) - intFromText($('td:nth(2)', a));
+            if (pointsDelta) return pointsDelta > 0;
+
+            let aGoalsScored = intFromText($('td:nth(7)', a));
+            let aGoalsLost = intFromText($('td:nth(7)', a));
+            let bGoalsScored = intFromText($('td:nth(6)', b));
+            let bGoalsLost = intFromText($('td:nth(7)', b));
+            let goalDelta = (bGoalsScored - bGoalsLost) - (aGoalsScored - aGoalsLost);
+            if (goalDelta) return goalDelta > 0;
+
+            let winsDelta = intFromText($('td:nth(3)', b)) - intFromText($('td:nth(3)', a));
+            if (winsDelta) return winsDelta;
+
+            let drawDelta = intFromText($('td:nth(4)', b)) - intFromText($('td:nth(4)', a));
+            if (drawDelta) return drawDelta > 0;
+
+            let moreGoalsScored = bGoalsScored - aGoalsScored;
+            return moreGoalsScored > 0;
+
+            let lostDelta = intFromText($('td:nth(5)', a)) - intFromText($('td:nth(5)', b));
+            if (lostDelta) return lostDelta > 0;
+        }).appendTo(tbody);
+
+        // UPDATE IDS
+        tbody.find('tr').each(function(index) {
+            $('td:nth(0)', this).text(index+1);
+        }).appendTo(tbody);
     }
 }
 
@@ -360,16 +410,20 @@ class Tour {
         this.stages = [];
         this.finished = false;
         tourEmitter.listen('deletedTeam', (name) => this.removeTeam(name));
-        tourEmitter.listen('finishedMatch', (match) => this.updateAddingResultView());
         tourEmitter.listen('finishedMatch', (match) => {
-            if (this.stages[this.stages.length-1].finished) {
-                if (this.type === 'lc') {
-                    // GENERUJ FAZĘ PUCHAROWĄ
-                } else {
-                    this.finished = true;
-                    alert(ALERTS.TOURNAMENT_IS_FINISHED[lang]);
+            this.updateAddingResultView();
+            
+            setTimeout(() => {
+                if (this.stages[this.stages.length-1].finished) {
+                    if (this.type === 'lc') {
+                        // GENERUJ FAZĘ PUCHAROWĄ
+                    } else {
+                        this.finished = true;
+                        hide(DOM.addingResultJQ)
+                        alert(ALERTS.TOURNAMENT_IS_FINISHED[lang]);
+                    };
                 };
-            };
+            }, 50);
         });
     }
     addTeam(newTeam) {
@@ -436,6 +490,7 @@ class Tour {
     addResultToNextMatch(hostGoals, guestGoals) {
         let nextMatch = this.getNextMatch();
         if (nextMatch) nextMatch.addResult(hostGoals, guestGoals);
+        else alert(ALERTS.TOURNAMENT_IS_FINISHED[lang]);
     }
     updateAddingResultView() {
         let nextMatch = this.getNextMatch();
@@ -443,12 +498,6 @@ class Tour {
         else {
             // hide adding result view
         };
-    }
-    getCurrentStage() {
-
-    }
-    updateLeagueTable() {
-
     }
 }
 
