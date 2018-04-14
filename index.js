@@ -339,8 +339,12 @@ class Match {
 
 class Tie {
     constructor(match1, match2, stage = 'cup') {
-        this.matches = [];
+        this.matches = [match1, match2];
         this.stage = stage;
+        this.penalties = true;  // BY DEFAULT IS ON
+        this.hostPenaltiesGoals = 0;
+        this.guestPenaltiesGoals = 0;
+        this.penaltiesWinner = '';
         this.finished = false;
 
         tourEmitter.listen('finishedMatch', (match) => {
@@ -348,7 +352,7 @@ class Tie {
             if (this.matches[this.matches.length-1].finished) this.finished = true;
         });
     }
-    whoWon() {
+    whoWon() { // HERE IS A BUG
         if (this.matches.every(v => v.finished)) {
             // licz bramki u siebie i na wyjeździe
             let [m1, m2] = this.matches;
@@ -356,7 +360,6 @@ class Tie {
             let t2 = {name: m2.guest.name, goalsScored: 0, goalsLost: 0};
 
             for (let m of this.matches) {
-                //if ()
                 ['host', 'guest'].forEach(v => {
                     if (m.host.name === t1.name) {
                         t1.goalsScored += m.host.goalsScored;
@@ -364,24 +367,13 @@ class Tie {
                     } else {
                         t1.goalsScored += 2*(m.guest.goalsScored);
                         t2.goalsScored += m.host.goalsScored;
-                    }
+                    };
                 });
             };
             
             if (t1.goalsScored > t2.goalsScored) return m2.host;
             else if (t1.goalsScored < t2.goalsScored) return m2.guest;
-            else {
-                // PRZEPROWADŹ KARNE!!!
-                alert(ALERTS.PENALTIES_START[lang]);
-                let t1Penalties = parseInt(prompt(`Podaj gole dla ${t1.name}:`, 5)); // ZMIEŃ NA LEPSZĄ WERSJĘ
-                let t2Penalties = parseInt(prompt(`Podaj gole dla ${t2.name}:`, 5)); // ZMIEŃ NA LEPSZĄ WERSJĘ
-
-                m2.hostPenaltiesGoals = t1Penalties;
-                m2.guestPenaltiesGoals = t2Penalties;
-
-                if (t1Penalties > t2Penalties) return m2.host;
-                else return m2.guest;
-            }
+            else return this.penaltiesWinner;
         } else return false;
     }
     getNextMatch() {
@@ -391,7 +383,36 @@ class Tie {
             else return found;
         } else return false;
     }
+    showAsCurrentMatch() {
+        let nextMatch = this.getNextMatch();
+        if (nextMatch) nextMatch.showAsCurrentMatch();
+    }
+    addResult(hostGoals, guestGoals) {
+        let nextMatch = this.getNextMatch();
+        if (nextMatch) nextMatch.addResult(hostGoals, guestGoals);
+    }
+    playPenalties() {
+        // PRZEPROWADŹ KARNE!!!
+        alert(ALERTS.PENALTIES_START[lang]);
+        let [m1, m2] = this.matches;
+        let t1Penalties = parseInt(prompt(`Podaj gole dla ${m2.host.name}:`, 5)); // ZMIEŃ NA LEPSZĄ WERSJĘ
+        let t2Penalties = parseInt(prompt(`Podaj gole dla ${m2.guest.name}:`, 5)); // ZMIEŃ NA LEPSZĄ WERSJĘ
+        console.log('to', this.matches)
+        m2.hostPenaltiesGoals = t1Penalties;
+        m2.guestPenaltiesGoals = t2Penalties;
 
+        if (t1Penalties > t2Penalties) {
+            this.penaltiesWinner = m2.host;
+            return m2.host;
+        } else {
+            this.penaltiesWinner = m2.guest;
+            return m2.guest;
+        };
+    }
+    clearStats() {
+        this.matches.forEach(m => m.clearStats());
+    }
+    
 }
 
 
@@ -416,8 +437,11 @@ class Round {
     }
     getWinners() {
         let winners = this.matches.map(m => m.whoWon());
-        console.log(winners);
-        winners.forEach(w => w.clearStats());
+        console.log('winners', winners);
+        winners.forEach(w => {
+            console.log(w);
+            w.clearStats();
+        });
         return winners;
     }
 
@@ -576,7 +600,7 @@ class Cup {
             };
 
             console.log(team1, team2, nextStage);
-            if (this.cupRevenge) matches.push(new Tie(team1, team2, nextStage, teams));
+            if (this.cupRevenge && teams.length > 2) matches.push(new Tie(new Match(team1, team2, nextStage), new Match(team2, team1, nextStage), nextStage));
             else matches.push(new Match(team1, team2, nextStage));
         };
 
