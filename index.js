@@ -216,6 +216,14 @@ class Team {
             let belowRow = this.onLeagueTable.next();
         };
     }
+    clearStats() {
+        this.won = 0;    
+        this.draw = 0;    
+        this.lost = 0;    
+        this.points = 0;    
+        this.goalsScored = 0;    
+        this.goalsLost = 0;    
+    }
 }
 
 // ADD CHANGABLE POINTS FOR WIN/DRAW/LOOSE EG. IN FOOTBALL 3/1/0
@@ -232,6 +240,7 @@ class Match {
         this.penalties = false;
         this.hostPenaltiesGoals = 0;
         this.guestPenaltiesGoals = 0;
+        this.penaltiesWinner = '';
         this.isRevenge = isRevenge;
         this.onLeagueFixturesList = $(`<tr><td>${host.name}</td><td class="result"></td><td>${guest.name}</td></tr>`).appendTo(DOM.leagueFixturesJQ);
         if (stage.match(/cup/g)) this.penalties = true;
@@ -242,6 +251,7 @@ class Match {
         this.guestGoals = guestGoals;
         this.updateTeamsResults();
         this.onLeagueFixturesList.find('.result').text(`${hostGoals}:${guestGoals}`);
+        if (hostGoals === guestGoals && this.penalties) this.playPenalties();
         tourEmitter.emit('finishedMatch', this);
     }
     isHost(name) {
@@ -300,6 +310,30 @@ class Match {
         DOM.addingResultHostJQ.text(this.host.name);
         DOM.addingResultGuestJQ.text(this.guest.name);
     }
+    whoWon() {
+        // licz bramki u siebie i na wyjeździe
+        let {host, guest, hostGoals, guestGoals} = this;
+        if (hostGoals > guestGoals) return host;
+        else if (hostGoals < guestGoals) return guest;
+        else return this.penaltiesWinner;
+    }
+    playPenalties() {
+        // PRZEPROWADŹ KARNE!!!
+        alert(ALERTS.PENALTIES_START[lang]);
+        let {host, guest} = this;
+        this.hostPenaltiesGoals = parseInt(prompt(`Podaj gole dla ${host.name}:`, 5)); // ZMIEŃ NA LEPSZĄ WERSJĘ
+        this.guestPenaltiesGoals = parseInt(prompt(`Podaj gole dla ${guest.name}:`, 5)); // ZMIEŃ NA LEPSZĄ WERSJĘ
+
+        if (this.hostPenaltiesGoals > this.guestPenaltiesGoals) {
+            this.penaltiesWinner = host;
+            console.log(this);
+            return host;
+        } else {
+            this.penaltiesWinner = guest;
+            console.log(this);
+            return guest;
+        };
+    }
 }
 
 
@@ -339,8 +373,8 @@ class Tie {
             else {
                 // PRZEPROWADŹ KARNE!!!
                 alert(ALERTS.PENALTIES_START[lang]);
-                let t1Penalties = prompt(`Podaj gole dla ${t1.name}:`, 5); // ZMIEŃ NA LEPSZĄ WERSJĘ
-                let t2Penalties = prompt(`Podaj gole dla ${t2.name}:`, 5); // ZMIEŃ NA LEPSZĄ WERSJĘ
+                let t1Penalties = parseInt(prompt(`Podaj gole dla ${t1.name}:`, 5)); // ZMIEŃ NA LEPSZĄ WERSJĘ
+                let t2Penalties = parseInt(prompt(`Podaj gole dla ${t2.name}:`, 5)); // ZMIEŃ NA LEPSZĄ WERSJĘ
 
                 m2.hostPenaltiesGoals = t1Penalties;
                 m2.guestPenaltiesGoals = t2Penalties;
@@ -366,8 +400,8 @@ class Round {
         if (!matches) throw Error(ERRORS.LACK_OF_MATCHES_IN_ROUND[lang]);
         this.matches = matches;
         this.finished = false;
+
         console.log(matches);
-        console.log(this.matches);
         tourEmitter.listen('finishedMatch', (match) => {
             if (this.finished) return;
             if (this.matches[this.matches.length-1].finished) this.finished = true;
@@ -379,6 +413,12 @@ class Round {
             if (!found) this.finished = false;
             else return found;
         } else return false;
+    }
+    getWinners() {
+        let winners = this.matches.map(m => m.whoWon());
+        console.log(winners);
+        winners.forEach(w => w.clearStats());
+        return winners;
     }
 
 }
@@ -511,8 +551,8 @@ class Cup {
     getWinnersToNextStage() {
         // 1, 2, 4, 8, 16, bez 32, 64
         // liczba drużyn/2 np. gdy 32 drużyny wtedy wychodzi 16
-        let lastRound = this.rounds[this.rounds.length];
-        if (lastRound) return lastRound;
+        let lastRound = this.rounds[this.rounds.length-1];
+        if (lastRound) return lastRound.getWinners(); // zwróć tylko zwycięzców
         else return this.teams;
     }
 
@@ -520,11 +560,20 @@ class Cup {
         // prepare new table of teams which win in last round
         // if last round was final then return nothing
         let teams = this.getWinnersToNextStage();
+        if (teams.length === 1) {
+            alert(ALERTS.TOURNAMENT_IS_FINISHED[lang]);
+            // DODAJ POKAZANIE ZWYCIĘZCY
+        };
+
         let matches = [];
         let nextStage = `cup-${this.getNextRoundName()}`;
-        console.log('teams:', teams);
         for (let i=0; i<teams.length; i=i+2) {
             let team1 = teams[i], team2 = teams[i+1];
+            if (!team1 || !team2) {
+                // CHECK WHO WON IN FINAL AND IF HAVE TO START PENALTIES
+                if (this.rounds) console.log(this.rounds[this.rounds.length-1].matches[0].whoWon());
+                return false;
+            };
 
             console.log(team1, team2, nextStage);
             if (this.cupRevenge) matches.push(new Tie(team1, team2, nextStage, teams));
@@ -539,10 +588,11 @@ class Cup {
     }
     getNextRoundName() {
         let lastRound = this.rounds[this.rounds.length-1];
-        if (!lastRound) return console.log('brak ostatniej rundy.'); // zmien na ALERTS
+        if (!lastRound) return `1/${this.teams.length/2}`; // zmien na ALERTS
 
         let numberOfTeamsInCurrentStage = this.rounds[this.rounds.length-1].length;
         if (numberOfTeamsInCurrentStage >= 2) return `1/${numberOfTeamsInCurrentStage/4}`;
+        else if (numberOfTeamsInCurrentStage === 2) return `1/1`;
         else return false;
     }
 
@@ -701,13 +751,19 @@ const tourEmitter = new TourEmitter();
 const tour = new Tour();
 
 
-DOM.addTeamBtnJQ.on('click', function() {
+function addTeam() {
     // JEŚLI JUŻ JEST 64 DRUŻYNY, NIE MOŻNA DODAĆ WIĘCEJ NIŻ 64 DRUŻYNY
     let {newTeamJQ} = DOM;
     let newTeam = newTeamJQ.val();
     if (!newTeam) return alert(ALERTS.LACK_OF_NAME[lang]);
     tour.addTeam(newTeam);
     newTeamJQ.val('');
+    newTeamJQ.focus();
+};
+
+DOM.addTeamBtnJQ.on('click', addTeam);
+$(document).on('keydown', function (event) {  
+    if (event.which == 13 && event.target === DOM.newTeamJQ[0]) addTeam();                
 });
 
 DOM.readyTeamsBtnJQ.on('click', function() {
@@ -731,12 +787,18 @@ DOM.startTourBtnJQ.on('click', function() {
     tour.startTour();
 });
 
-DOM.addResultBtnJQ.on('click', function() {
+function addResult() {
     // POBIERZ WARTOŚCI Z PÓL
     let hostGoals = parseInt(DOM.addingResultHostGoalsJQ.val());
     let guestGoals = parseInt(DOM.addingResultGuestGoalsJQ.val());
     if (isNaN(hostGoals) || isNaN(guestGoals)) alert(ALERTS.NAN_IN_ADDING_RESULT[lang]);
     else tour.addResultToNextMatch(hostGoals, guestGoals);
+    DOM.addingResultHostGoalsJQ.focus();
+};
+
+DOM.addResultBtnJQ.on('click', addResult);
+$(document).on('keydown', function (event) {  
+    if (event.which == 13 && (event.target === DOM.addingResultHostGoalsJQ[0] || event.target === DOM.addingResultGuestGoalsJQ[0])) addResult();                
 });
 
 // PO ZAKOŃCZENIU LIGI, SPRAWDZENIE CZY TRZEBA WYGENEROWAĆ JESZCZE FAZĘ PUCHAROWĄ
@@ -777,3 +839,4 @@ DOM.addResultBtnJQ.on('click', function() {
 // Źle podświetla na końcu w fixtures chyba po prostu nie aktualizuje
 
 // dodaj obsługę karnych
+// gdy finał zakończy się remisem nie wyświetlają się karne
