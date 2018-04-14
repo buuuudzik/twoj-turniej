@@ -76,6 +76,10 @@ const ALERTS = {
     TOURNAMENT_IS_FINISHED: {
         en: 'This was the last match in this tour. See you next time!',
         pl: 'To był ostatni mecz w turnieju. Do zobaczenia następnym razem!'
+    },
+    PENALTIES_START: {
+        en: 'Penalties time!',
+        pl: 'Czas na rzuty karne!'
     }
 }
 
@@ -225,8 +229,12 @@ class Match {
         this.guestGoals = 0;
         this.finished = false;
         this.stage = '';
+        this.penalties = false;
+        this.hostPenaltiesGoals = 0;
+        this.guestPenaltiesGoals = 0;
         this.isRevenge = isRevenge;
         this.onLeagueFixturesList = $(`<tr><td>${host.name}</td><td class="result"></td><td>${guest.name}</td></tr>`).appendTo(DOM.leagueFixturesJQ);
+        if (stage.match(/cup/g)) this.penalties = true;
     }
     addResult(hostGoals, guestGoals) {
         this.finished = true;
@@ -310,18 +318,36 @@ class Tie {
         if (this.matches.every(v => v.finished)) {
             // licz bramki u siebie i na wyjeździe
             let [m1, m2] = this.matches;
-            let t1 = {name: m1.host, goalsScored: 0, goalsLost: 0};
-            let t2 = {name: m1.guest, goalsScored: 0, goalsLost: 0};
+            let t1 = {name: m2.host.name, goalsScored: 0, goalsLost: 0};
+            let t2 = {name: m2.guest.name, goalsScored: 0, goalsLost: 0};
 
             for (let m of this.matches) {
                 //if ()
-                t1.goalsScored += m.host.goalsScored;
-                t1.goalsLost += m.host.goalsLost;
-                t2.goalsScored += 2*(m.guest.goalsScored);
-                t2.goalsLost += m.guest.goalsLost;
+                ['host', 'guest'].forEach(v => {
+                    if (m.host.name === t1.name) {
+                        t1.goalsScored += m.host.goalsScored;
+                        t2.goalsScored += 2*(m.guest.goalsScored);
+                    } else {
+                        t1.goalsScored += 2*(m.guest.goalsScored);
+                        t2.goalsScored += m.host.goalsScored;
+                    }
+                });
             };
             
+            if (t1.goalsScored > t2.goalsScored) return m2.host;
+            else if (t1.goalsScored < t2.goalsScored) return m2.guest;
+            else {
+                // PRZEPROWADŹ KARNE!!!
+                alert(ALERTS.PENALTIES_START[lang]);
+                let t1Penalties = prompt(`Podaj gole dla ${t1.name}:`, 5); // ZMIEŃ NA LEPSZĄ WERSJĘ
+                let t2Penalties = prompt(`Podaj gole dla ${t2.name}:`, 5); // ZMIEŃ NA LEPSZĄ WERSJĘ
 
+                m2.hostPenaltiesGoals = t1Penalties;
+                m2.guestPenaltiesGoals = t2Penalties;
+
+                if (t1Penalties > t2Penalties) return m2.host;
+                else return m2.guest;
+            }
         } else return false;
     }
     getNextMatch() {
@@ -340,7 +366,8 @@ class Round {
         if (!matches) throw Error(ERRORS.LACK_OF_MATCHES_IN_ROUND[lang]);
         this.matches = matches;
         this.finished = false;
-
+        console.log(matches);
+        console.log(this.matches);
         tourEmitter.listen('finishedMatch', (match) => {
             if (this.finished) return;
             if (this.matches[this.matches.length-1].finished) this.finished = true;
@@ -456,10 +483,13 @@ class League {
         else return false;
     }
     getQualifiedTeams() {
-        let qualifiedTeams = [];
+        let qualifiedTeamNames = [];
         let teamsInTableJQ = DOM.leagueTableJQ.find('tbody > tr').each((i, v) => {
-            if (i < this.teams.length/2) qualifiedTeams.push($(v).find('.name').text());
+            if (i < this.teams.length/2) qualifiedTeamNames.push($(v).find('.name').text());
         });
+
+        let qualifiedTeams = qualifiedTeamNames.map(name => this.teams.find(team => name === team.name));
+
         if (qualifiedTeams) return qualifiedTeams;
         else return false;
     }
@@ -475,7 +505,7 @@ class Cup {
         this.cupRevenge = cupRevenge;
         this.rounds = []; // GENERATE NEW ROUND AT END OF LAST UNTIL FINAL
         this.finished = false;
-        this.generateCup();
+        this.generateNextRound();
     }
 
     getWinnersToNextStage() {
@@ -489,21 +519,43 @@ class Cup {
     generateNextRound() {
         // prepare new table of teams which win in last round
         // if last round was final then return nothing
-        //this.rounds.push(new Match(tea));
-        let teams = getWinnersToNextStage();
+        let teams = this.getWinnersToNextStage();
+        let matches = [];
+        let nextStage = `cup-${this.getNextRoundName()}`;
+        console.log('teams:', teams);
+        for (let i=0; i<teams.length; i=i+2) {
+            let team1 = teams[i], team2 = teams[i+1];
 
-        let nextRound = [];
+            console.log(team1, team2, nextStage);
+            if (this.cupRevenge) matches.push(new Tie(team1, team2, nextStage, teams));
+            else matches.push(new Match(team1, team2, nextStage));
+        };
 
-        if (this.cupRevenge) nextRound.push(new Tie(team1, team2, stage));
-        else nextRound.push(new Match(team1, team2, stage, this.isRevenge));
+        this.rounds.push(new Round(matches));
+    }
+    getRoundName() {
+        if (this.rounds) return `1/${this.rounds[this.rounds.length-1].length}`;
+        else return false;
+    }
+    getNextRoundName() {
+        let lastRound = this.rounds[this.rounds.length-1];
+        if (!lastRound) return console.log('brak ostatniej rundy.'); // zmien na ALERTS
 
-
+        let numberOfTeamsInCurrentStage = this.rounds[this.rounds.length-1].length;
+        if (numberOfTeamsInCurrentStage >= 2) return `1/${numberOfTeamsInCurrentStage/4}`;
+        else return false;
     }
 
     getNextMatch() {
         // BELOW IS ONLY A COPY FROM A LEAGUE CLASS, IT MUST BE CHANGED
         let round = this.rounds.find(r => !r.finished);
-        return round.getNextMatch();
+
+        if (round) return round.getNextMatch();
+        else {
+            this.generateNextRound();
+            round = this.rounds.find(r => !r.finished);
+            if (round) return round.getNextMatch();
+        };
     }
 }
 
@@ -529,7 +581,7 @@ class Tour {
                     if (this.type === 'lc') {
                         // GENERUJ FAZĘ PUCHAROWĄ
                         let teams = this.stages[this.stages.length-1].getQualifiedTeams();
-                        console.log(teams);
+                        this.stages.push(new Cup(teams, this.cupRevenge));
                     } else {
                         this.finished = true;
                         hide(DOM.addingResultJQ)
@@ -539,7 +591,7 @@ class Tour {
             }, 50);
         });
         tourEmitter.listen('tableSorted', (match) => {
-            if (this.finished === true) return;
+            // if (this.finished === true) return; // jeśli dodam tą linijkę, wtedy po ostatniej kolejce nie wykona się kod dekoratora
             this.decorateBestOnView();
         });
     }
@@ -554,12 +606,12 @@ class Tour {
         this.teams.splice(this.teams.findIndex(t => t.name === name), 1);
         if (this.teams.length < 2) hide(DOM.readyTeamsBtnJQ);
     }
-    canPlayCup() {
+    canPlayCup() { // ADD CHECKING FOR LEAGUE+CUP BECAUSE AFTER LEAGUE THE NUMBER OF TEAMS CAN BE TOO SMALL!!!
         let numberOfTeams = this.teams.length;
         if (numberOfTeams%2 !== 0 || ![2,4,8,16,32,64].includes(numberOfTeams)) return false;
         else return true;
     }
-    showOnlyPossibleTypes() {
+    showOnlyPossibleTypes() { // SAME AS ABOVE
         let {selectCupJQ, cupRevengeJQ, cupRevengeValueJQ} = DOM;
         if (this.canPlayCup()) show(selectCupJQ);
         else hide(selectCupJQ);
@@ -715,3 +767,13 @@ DOM.addResultBtnJQ.on('click', function() {
 // obsługa karnych w pucharze, przy remisie w meczu lub dwumeczu
 
 // nie pozwól dodać jakiegoś bardzo, bardzo wysokiego wyniku
+
+// dodaj opcję automatycznie dokończ bieżącą fazę i przejdź do następnej
+
+// generuj nazwę drużyny
+
+// grupy graczy np. pingiel, żeby za każdym razem nie dodawać ich, a im bardziej intuicyjne tym lepiej
+
+// Źle podświetla na końcu w fixtures chyba po prostu nie aktualizuje
+
+// dodaj obsługę karnych
