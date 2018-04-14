@@ -6,3 +6,17 @@ body {
 .hidden {
     display: none;
 }
+
+.first,
+.league-table tr:nth-child(1) .position {
+    background-color: #ffd700;
+}
+.second,
+.league-table tr:nth-child(2) .position {
+    background-color: #c0c0c0;
+}
+.third,
+.league-table tr:nth-child(3) .position {
+    color: #ffffff;
+    background-color: #744705;
+}

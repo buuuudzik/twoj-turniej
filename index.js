@@ -79,6 +79,25 @@ const ALERTS = {
     }
 }
 
+const INTERFACE = {
+    LEAGUE: {
+        en: 'league',
+        pl: 'liga'
+    },
+    ROUND: {
+        en: 'round',
+        pl: 'runda'
+    },
+    MATCH: {
+        en: 'match',
+        pl: 'mecz'
+    },
+    TIE: {
+        en: 'tie',
+        pl: 'dwumecz'
+    }
+}
+
 const DOM = {
     // PAGES
     allPagesJQ: $('.page'),
@@ -120,6 +139,7 @@ class TourEmitter {
     }
 
     emit(event, data) {
+        if (!this.eventsList[event]) return; // NO LISTENERS
         for (let callback of this.eventsList[event]) callback(data);
     }
 
@@ -196,7 +216,7 @@ class Team {
 
 // ADD CHANGABLE POINTS FOR WIN/DRAW/LOOSE EG. IN FOOTBALL 3/1/0
 class Match {
-    constructor(host, guest, stage) {
+    constructor(host, guest, stage, isRevenge = false) {
         if (!host || !guest) throw Error(ERRORS.LACK_OF_TEAMS_IN_MATCH[lang]);
 
         this.host = host;
@@ -205,6 +225,7 @@ class Match {
         this.guestGoals = 0;
         this.finished = false;
         this.stage = '';
+        this.isRevenge = isRevenge;
         this.onLeagueFixturesList = $(`<tr><td>${host.name}</td><td class="result"></td><td>${guest.name}</td></tr>`).appendTo(DOM.leagueFixturesJQ);
     }
     addResult(hostGoals, guestGoals) {
@@ -275,12 +296,13 @@ class Match {
 
 
 class Tie {
-    constructor(match1, match2) {
+    constructor(match1, match2, stage = 'cup') {
         this.matches = [];
+        this.stage = stage;
         this.finished = false;
 
         tourEmitter.listen('finishedMatch', (match) => {
-            if (!this.finished) return;
+            if (this.finished) return;
             if (this.matches[this.matches.length-1].finished) this.finished = true;
         });
     }
@@ -320,7 +342,7 @@ class Round {
         this.finished = false;
 
         tourEmitter.listen('finishedMatch', (match) => {
-            if (!this.finished) return;
+            if (this.finished) return;
             if (this.matches[this.matches.length-1].finished) this.finished = true;
         });
     }
@@ -339,6 +361,7 @@ class League {
     constructor(teams, leagueRevenge) {
         if (!teams) throw Error(ERRORS.LACK_OF_TEAMS_IN_LEAGUE[lang]);
 
+        this.type = 'league';
         this.teams = teams;
         this.leagueRevenge = leagueRevenge;
         this.rounds = [];
@@ -349,7 +372,8 @@ class League {
             if (this.finished === true) return;
             if (this.rounds[this.rounds.length-1].finished) this.finished = true;
             setTimeout(() => {
-                this.sortLeagleTable();
+                this.sortLeagueTable();
+                tourEmitter.emit('tableSorted');
             }, 50);
         });
     }
@@ -360,18 +384,21 @@ class League {
         if (this.leagueRevenge) repeatCount = 2;
 
         for (let i=1; i<=repeatCount; i++) {
- 
+            let isRevenge = false;
             let generatedMatches = generateLeague(this.teams.length, this.teams);
             if (i === 2) {
+                // REVERSE ORDER FOR REVENGE MATCHES AND TEAMS IN MATCHES
                 generatedMatches.reverse();
                 for (let r of generatedMatches) {
                     for (let m of r) m.reverse();
                 };
+                isRevenge = true;
             };
 
             for(let r of generatedMatches) {
+                let roundNumber = this.rounds.length + 1;
                 let matches = [];
-                for (let m of r) matches.push(new Match(m[0], m[1]));
+                for (let m of r) matches.push(new Match(m[0], m[1], `league-stage-${roundNumber}`, isRevenge));
                 this.rounds.push(new Round(matches));
             };
         };
@@ -388,7 +415,7 @@ class League {
         if (nextMatch) nextMatch.show//
         else ; // UKRYJ FORMULARZ ADDING MATCH RESULT
     }
-    sortLeagleTable() {
+    sortLeagueTable() {
         let tbody = DOM.leagueTableJQ.find('tbody');
         tbody.find('tr').sort(function(a, b) {
             // ONLY DESC DIRECTION
@@ -420,6 +447,22 @@ class League {
             $('td:nth(0)', this).text(index+1);
         }).appendTo(tbody);
     }
+    getBestTeamNames() {
+        let bestTeams = [];
+        let teamsInTableJQ = DOM.leagueTableJQ.find('tbody > tr').each((i, v) => {
+            if (i < 3) bestTeams.push($(v).find('.name').text());
+        });
+        if (bestTeams) return bestTeams;
+        else return false;
+    }
+    getQualifiedTeams() {
+        let qualifiedTeams = [];
+        let teamsInTableJQ = DOM.leagueTableJQ.find('tbody > tr').each((i, v) => {
+            if (i < this.teams.length/2) qualifiedTeams.push($(v).find('.name').text());
+        });
+        if (qualifiedTeams) return qualifiedTeams;
+        else return false;
+    }
 }
 
 
@@ -427,6 +470,7 @@ class Cup {
     constructor(teams, cupRevenge) {
         if (!teams) throw Error(ERRORS.LACK_OF_TEAMS_IN_CUP[lang]);
 
+        this.type = 'cup';
         this.teams = teams;
         this.cupRevenge = cupRevenge;
         this.rounds = []; // GENERATE NEW ROUND AT END OF LAST UNTIL FINAL
@@ -434,27 +478,26 @@ class Cup {
         this.generateCup();
     }
 
-    generateCup() {
+    getWinnersToNextStage() {
         // 1, 2, 4, 8, 16, bez 32, 64
         // liczba drużyn/2 np. gdy 32 drużyny wtedy wychodzi 16
-        let numberOfteams = this.teams.length;
-        if (numberOfteams === 64) {
-
-        } else if (numberOfteams === 32) {
-
-        } else if (numberOfteams === 16) {
-
-        } else if (numberOfteams === 8) {
-
-        } else if (numberOfteams === 4) {
-
-        } else if (numberOfteams === 2) {
-
-        };
+        let lastRound = this.rounds[this.rounds.length];
+        if (lastRound) return lastRound;
+        else return this.teams;
     }
 
     generateNextRound() {
-        this.rounds.push(new Match);
+        // prepare new table of teams which win in last round
+        // if last round was final then return nothing
+        //this.rounds.push(new Match(tea));
+        let teams = getWinnersToNextStage();
+
+        let nextRound = [];
+
+        if (this.cupRevenge) nextRound.push(new Tie(team1, team2, stage));
+        else nextRound.push(new Match(team1, team2, stage, this.isRevenge));
+
+
     }
 
     getNextMatch() {
@@ -481,10 +524,12 @@ class Tour {
         tourEmitter.listen('finishedMatch', (match) => {
             setTimeout(() => {
                 this.updateAddingResultView();
-
+            
                 if (this.stages[this.stages.length-1].finished) {
                     if (this.type === 'lc') {
                         // GENERUJ FAZĘ PUCHAROWĄ
+                        let teams = this.stages[this.stages.length-1].getQualifiedTeams();
+                        console.log(teams);
                     } else {
                         this.finished = true;
                         hide(DOM.addingResultJQ)
@@ -492,6 +537,10 @@ class Tour {
                     };
                 };
             }, 50);
+        });
+        tourEmitter.listen('tableSorted', (match) => {
+            if (this.finished === true) return;
+            this.decorateBestOnView();
         });
     }
     addTeam(newTeam) {
@@ -536,7 +585,7 @@ class Tour {
         // GENERATE CUP (1ST STAGE OR ONLY)
         let {type, teams, leagueRevenge, cupRevenge} = this;
 
-        if (type === 'l' || type === 'lp') this.stages.push(new League(teams, leagueRevenge));
+        if (type === 'l' || type === 'lc') this.stages.push(new League(teams, leagueRevenge));
         else this.stages.push(new Cup(teams, cupRevenge));
 
         switch(this.type) {
@@ -570,6 +619,29 @@ class Tour {
         } else {
             // hide adding result view
         };
+    }
+    getCurrentStage() {
+        for (let s in this.stages) {
+            if (!this.stages[s].finished) return this.stages[s];
+        };
+        return false;
+    }
+    decorateBestOnView() {
+        let currentStage = this.getCurrentStage();
+        if (currentStage) {
+            if (currentStage.type.match(/league/g)) {
+                let bestPlayers = currentStage.getBestTeamNames();
+                if (!bestPlayers) return;
+
+                let {leagueFixturesJQ} = DOM;
+                let [first, second, third] = currentStage.getBestTeamNames();
+                $('.league-fixtures .first, .league-fixtures .second, .league-fixtures .third').removeClass('first second third');
+                leagueFixturesJQ.find(`tbody td:contains('${first}')`).addClass('first');
+                leagueFixturesJQ.find(`tbody td:contains('${second}')`).addClass('second');
+                leagueFixturesJQ.find(`tbody td:contains('${third}')`).addClass('third');
+            };
+        };
+
     }
 }
 
@@ -627,6 +699,8 @@ DOM.addResultBtnJQ.on('click', function() {
 // PODŚWIETLAJ PROWADZĄCEGO W TABELI W FIXTURES
 
 // PODŚWIETL ZWYCIĘZCĘ
+// KOLORUJ PIERWSZE 3 MIEJSCA W FIXTURES ZŁOTYM, SREBRNYM I BRĄZOWYM PODKREŚLENIEM (dopiero po pierwszej rundzie)
+// KOLORUJ AKTUALNY MATCH NA LIŚCIE MECZY I PODŚWIETL NA JAKIE MIEJSCE MOŻE WSKOCZYĆ DANA DRUŻYNA W PRZYPADKU WYSOKIEJ WYGRANEJ
 
 // DODAJ NOWY TYP TZN. FREE TOUR: ZDEFINIOWANIE DRUŻYN I NA BIEŻĄCO DODAWANIE MECZÓW
 
@@ -639,3 +713,5 @@ DOM.addResultBtnJQ.on('click', function() {
 // wyczyść stan rozgrywki w pucharze, lidze lub całym turnieju (może być przydatne również podczas wczytywania backupu)
 
 // obsługa karnych w pucharze, przy remisie w meczu lub dwumeczu
+
+// nie pozwól dodać jakiegoś bardzo, bardzo wysokiego wyniku
