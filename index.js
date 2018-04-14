@@ -178,7 +178,6 @@ class Team {
         let lastMatch = this.getLastMatch();
         
         if (lastMatch.isDraw() || lastMatch.isAWinOf(this.name)) {
-            console.log('was draw or win');
             let aboveRow = this.onLeagueTable.prev();
             let abovePoints = parseInt(aboveRow.find('.points').text());
             let aboveWins = parseInt(aboveRow.find('.wins'));
@@ -191,17 +190,11 @@ class Team {
         } else {
             // zobacz czy nie musisz przesunąć poniżej poprzednika, i patrz tylko na różnicę goli
             let belowRow = this.onLeagueTable.next();
-            console.log('was lost');
         };
-
-        // update wszystkich numerków w tabeli
-
-        // JEŚLI WYGRANA LUB REMIS, PATRZ W GÓRĘ
-        // JEŚLI PRZEGRANA PATRZ W DÓŁ
     }
 }
 
-
+// ADD CHANGABLE POINTS FOR WIN/DRAW/LOOSE EG. IN FOOTBALL 3/1/0
 class Match {
     constructor(host, guest) {
         if (!host || !guest) throw Error(ERRORS.LACK_OF_TEAMS_IN_MATCH[lang]);
@@ -277,7 +270,6 @@ class Match {
     showAsCurrentMatch() {
         DOM.addingResultHostJQ.text(this.host.name);
         DOM.addingResultGuestJQ.text(this.guest.name);
-        // wyczyść formularz
     }
 }
 
@@ -322,10 +314,20 @@ class League {
     }
 
     generateLeague() {
-        for(let r of generateLeague(this.teams.length, this.teams)) {
-            let matches = [];
-            for (let m of r) matches.push(new Match(m[0], m[1]));
-            this.rounds.push(new Round(matches));
+        let repeatCount = 1;
+        
+        if (this.leagueRevenge) repeatCount = 2;
+
+        for (let i=1; i<=repeatCount; i++) {
+ 
+            let generatedMatches = generateLeague(this.teams.length, this.teams);
+            if (i === 2) generatedMatches.reverse();
+
+            for(let r of generatedMatches) {
+                let matches = [];
+                for (let m of r) matches.push(new Match(m[0], m[1]));
+                this.rounds.push(new Round(matches));
+            };
         };
     }
 
@@ -386,6 +388,8 @@ class Cup {
     }
 
     generateCup() {
+        // 1, 2, 4, 8, 16, bez 32, 64
+        // liczba drużyn/2 np. gdy 32 drużyny wtedy wychodzi 16
 
     }
 
@@ -411,9 +415,9 @@ class Tour {
         this.finished = false;
         tourEmitter.listen('deletedTeam', (name) => this.removeTeam(name));
         tourEmitter.listen('finishedMatch', (match) => {
-            this.updateAddingResultView();
-            
             setTimeout(() => {
+                this.updateAddingResultView();
+
                 if (this.stages[this.stages.length-1].finished) {
                     if (this.type === 'lc') {
                         // GENERUJ FAZĘ PUCHAROWĄ
@@ -494,8 +498,12 @@ class Tour {
     }
     updateAddingResultView() {
         let nextMatch = this.getNextMatch();
-        if (nextMatch) nextMatch.showAsCurrentMatch();
-        else {
+
+        if (nextMatch) {
+            nextMatch.showAsCurrentMatch();
+            DOM.addingResultHostGoalsJQ.val('');
+            DOM.addingResultGuestGoalsJQ.val('');
+        } else {
             // hide adding result view
         };
     }
@@ -527,11 +535,11 @@ DOM.selectTourTypeJQ.on('change', function() {
 });
 
 DOM.startTourBtnJQ.on('click', function() {
-    let {tourNameJQ, selectTourTypeJQ, cupRevengeJQ, leagueRevengeJQ} = DOM;
+    let {tourNameJQ, selectTourTypeJQ, cupRevengeValJQ, leagueRevengeValJQ} = DOM;
     tour.name = tourNameJQ.val() || 'Puchar Króla';
     tour.type = selectTourTypeJQ.val();
-    tour.leagueRevenge = leagueRevengeJQ[0].checked;
-    tour.cupRevenge = leagueRevengeJQ[0].checked;
+    tour.leagueRevenge = leagueRevengeValJQ[0].checked;
+    tour.cupRevenge = cupRevengeValJQ[0].checked;
     tour.startTour();
 });
 
@@ -540,7 +548,7 @@ DOM.addResultBtnJQ.on('click', function() {
     let hostGoals = parseInt(DOM.addingResultHostGoalsJQ.val());
     let guestGoals = parseInt(DOM.addingResultGuestGoalsJQ.val());
     if (isNaN(hostGoals) || isNaN(guestGoals)) alert(ALERTS.NAN_IN_ADDING_RESULT[lang]);
-    tour.addResultToNextMatch(hostGoals, guestGoals);
+    else tour.addResultToNextMatch(hostGoals, guestGoals);
 });
 
 // PO ZAKOŃCZENIU LIGI, SPRAWDZENIE CZY TRZEBA WYGENEROWAĆ JESZCZE FAZĘ PUCHAROWĄ
@@ -551,3 +559,13 @@ DOM.addResultBtnJQ.on('click', function() {
 // Po zakończeniu fazy lub całego turnieju ukryj pola dodawania wyniku
 
 // Po kliknięciu na zawodnika w tabli wyświetla się lista jego meczy
+
+// PODŚWIETLAJ PROWADZĄCEGO W TABELI W FIXTURES
+
+// PODŚWIETL ZWYCIĘZCĘ
+
+// DODAJ NOWY TYP TZN. FREE TOUR: ZDEFINIOWANIE DRUŻYN I NA BIEŻĄCO DODAWANIE MECZÓW
+
+// ZAPISUJ W LOCALSTORAGE UŻYTE NAZWY I SYGERUJ JE PODCZAS DODAWANIA GRACZY
+
+// przyciski popularnych wyników lub -/+ lub 1-5 żeby ułatwić wprowadzanie wyniku
