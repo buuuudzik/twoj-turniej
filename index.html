@@ -12,7 +12,11 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="top-bar"></div>
+    <div id="add-result" class="hidden">
+        <div class="adding-result"><span class="host"></span><input type="number" min="0" class="host-goals">:<input type="number" class="guest-goals"><span class="guest"></span><input type="button" class="add-result" value="Add result"></div>
+        <input type="button" class="goto-league-view hidden" value="League"></div>
+        <input type="button" class="goto-cup-view hidden" value="Cup"></div>
+    </div>
 
     <div id="adding-teams" class="page">
         <input type="text" min="3" class="team-name" placeholder="np.Giganci"></input><input type="button" class="add-team" value="Add"><input type="button" class="ready-teams hidden" value="Ready?">
@@ -40,7 +44,6 @@
     </div>
 
     <div id="league-view" class="page hidden">
-        <div class="adding-result"><span class="host"></span><input type="number" class="host-goals">:<input type="number" class="guest-goals"><span class="guest"></span><input type="button" class="add-result" value="Add result"></div>
         <div class="table">
             <table class="league-fixtures">
                 <thead>
@@ -60,7 +63,16 @@
         </div>
     </div>
 
-    <div id="cup-view" class="page hidden"></div>
+    <div id="cup-view" class="page hidden">
+        <div class="table">
+            <table class="cup-fixtures">
+                <thead>
+                    <tr><th>Host</th><th>Result</th><th>Guest</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
 
     <div id="stats-view" class="page hidden"></div>
 
