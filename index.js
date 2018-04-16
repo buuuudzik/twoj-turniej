@@ -263,7 +263,7 @@ class Match {
         } else {
             this.onFixturesList.find('.result').text(`${hostGoals}:${guestGoals}`);
         };
-        if (hostGoals === guestGoals && this.penalties) this.playPenalties();
+        if (hostGoals === guestGoals && this.penalties) {console.log('karne 5'); this.playPenalties();};
         tourEmitter.emit('finishedMatch', this);
     }
     isHost(name) {
@@ -363,7 +363,7 @@ class Tie {
             if (this.finished) return;
             console.log(this.matches[this.matches.length-1].finished, this.matches[this.matches.length-1])
             if (this.matches[this.matches.length-1].finished) {
-                if (this.isDraw() && this.penalties && !this.penaltiesWinner) this.playPenalties();
+                if (this.isDraw() && this.penalties && !this.penaltiesWinner) {console.log('karne 1'); this.playPenalties();};
                 this.finished = true;
             };
         });
@@ -392,25 +392,20 @@ class Tie {
             else return this.true;
         } else return false;
     }
-    whoWon() { // HERE IS A BUG
+    whoWon() {
         if (this.matches.every(v => v.finished)) {
             // licz bramki u siebie i na wyjeździe
             let [m1, m2] = this.matches;
-            let t1 = {name: m2.host.name, goalsScored: 0, goalsLost: 0};
-            let t2 = {name: m2.guest.name, goalsScored: 0, goalsLost: 0};
+            let teams = [{name: m2.host.name, goalsScored: 0}, {name: m2.guest.name, goalsScored: 0}];
 
             for (let m of this.matches) {
-                ['host', 'guest'].forEach(v => {
-                    if (m.host.name === t1.name) {
-                        t1.goalsScored += m.host.goalsScored;
-                        t2.goalsScored += 2*(m.guest.goalsScored);
-                    } else {
-                        t1.goalsScored += 2*(m.guest.goalsScored);
-                        t2.goalsScored += m.host.goalsScored;
-                    };
-                });
+                let host = teams.find(t => t.name === m.host.name);
+                let guest = teams.find(t => t.name === m.guest.name);
+                host.goalsScored += m.hostGoals;
+                guest.goalsScored += 2*(m.guestGoals);
             };
             
+            let [t1, t2] = teams;
             if (t1.goalsScored > t2.goalsScored) return m2.host;
             else if (t1.goalsScored < t2.goalsScored) return m2.guest;
             else return this.penaltiesWinner;
@@ -433,7 +428,7 @@ class Tie {
         
         nextMatch = this.getNextMatch();
         if (!nextMatch) {
-            if (!this.whoWon() && this.penalties) this.playPenalties();
+            if (!this.whoWon() && this.penalties) {console.log('karne 2'); this.playPenalties();};
         };
     }
     playPenalties() {
@@ -486,8 +481,8 @@ class Round {
             let winner = m.whoWon();
             if (winner) winners.push(winner);
             else {
-                console.log(m.isDraw(), m.penalties, m);
                 if (m.isDraw() && m.penalties) {
+                    console.log('karne 3'); 
                     m.playPenalties();
                     winners.push(m.whoWon());
                 };
@@ -644,22 +639,31 @@ class Cup {
         // prepare new table of teams which win in last round
         // if last round was final then return nothing
         let teams = this.getWinnersToNextStage();
-        if (teams.length === 1) {
-            alert(ALERTS.TOURNAMENT_IS_FINISHED[lang]);
-            // DODAJ POKAZANIE ZWYCIĘZCY
+        if (teams.length === 0) {
+            // AFTER FINAL
+            // FIRST CHECK IF PENALTIES WASN'T PLAYED
+            if (this.rounds) {
+                let lastMatch = this.rounds[this.rounds.length-1].matches[0];
+                let winner = lastMatch.whoWon();
+                if (winner) console.log(`Zwyciężył ${winner.name}!`);
+                else {
+                    console.log('karne 4'); 
+                    lastMatch.playPenalties();
+                    winner = lastMatch.whoWon();
+                    alert(`${ALERTS.TOURNAMENT_IS_FINISHED[lang]}. Zwyciężył ${winner.name}!`);
+                };
+            };
+            return false;
         };
 
         let matches = [];
         let nextStage = `cup-${this.getNextRoundName()}`;
         for (let i=0; i<teams.length; i=i+2) {
             let team1 = teams[i], team2 = teams[i+1];
-            if (!team1 || !team2) {
-                // CHECK WHO WON IN FINAL AND IF HAVE TO START PENALTIES
-                if (this.rounds) console.log(this.rounds[this.rounds.length-1].matches[0].whoWon());
-                return false;
-            };
 
-            console.log('tu', team1, team2, nextStage);
+            // DODAJ WYCZYSZCZENIE STATYSTYK DRUŻYN PRZED NOWĄ RUNDĄ
+            teams.forEach(t => t.clearStats());
+
             if (this.cupRevenge && teams.length > 2) matches.push(new Tie(new Match(team1, team2, nextStage), new Match(team2, team1, nextStage), nextStage));
             else if (this.cupRevenge && teams.length === 2) matches.push(new Match(team1, team2, nextStage));
             else if (!this.cupRevenge) matches.push(new Match(team1, team2, nextStage));
@@ -948,3 +952,7 @@ DOM.goToLeagueViewBtnJQ.on('click', function() {
 
 // dodaj obsługę karnych
 // gdy finał zakończy się remisem nie wyświetlają się karne
+
+// wyświetlaj karne obok wyniku podstawowego
+
+// dodaj obsługę skrótów np. ##a-e = dodanie zawodników a, b, c, d, e
