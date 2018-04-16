@@ -372,10 +372,20 @@ class Match {
             penalties,
             hostPenaltiesGoals,
             guestPenaltiesGoals,
-            penaltiesWinner,
+            penaltiesWinner: penaltiesWinner.name,
             isRevenge,
             partOfTie
         };
+    }
+    updateFromBackup(hostGoals, guestGoals, finished, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, partOfTie) {
+        this.hostGoals = hostGoals;
+        this.guestGoals = guestGoals;
+        this.finished = finished;
+        this.penalties = penalties;
+        this.hostPenaltiesGoals = hostPenaltiesGoals;
+        this.guestPenaltiesGoals = guestPenaltiesGoals;
+        this.penaltiesWinner = penaltiesWinner;
+        this.partOfTie = partOfTie;
     }
 }
 
@@ -495,9 +505,24 @@ class Tie {
             penalties,
             hostPenaltiesGoals,
             guestPenaltiesGoals,
-            penaltiesWinner,
+            penaltiesWinner: penaltiesWinner.name,
             finished
         };
+    }
+    updateFromBackup(finished, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, matches) {
+        matches.map(m => {
+            let {host, guest, stage, isRevenge, hostGoals, guestGoals, finished, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner} = m;
+            let newMatch = new Match(tour.getTeam(host), tour.getTeam(guest), stage, isRevenge);
+            newMatch.updateFromBackup(hostGoals, guestGoals, finished, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, true);
+        });
+        this.hostGoals = hostGoals;
+        this.guestGoals = guestGoals;
+        this.finished = finished;
+        this.penalties = penalties;
+        this.hostPenaltiesGoals = hostPenaltiesGoals;
+        this.guestPenaltiesGoals = guestPenaltiesGoals;
+        this.penaltiesWinner = penaltiesWinner;
+        this.partOfTie = partOfTie;
     }
 }
 
@@ -508,7 +533,7 @@ class Round {
         this.matches = matches;
         this.finished = false;
 
-        console.log(matches);
+        tourEmitter.emit('roundCreated');
         tourEmitter.listen('finishedMatch', (match) => {
             if (this.finished) return;
             if (this.matches[this.matches.length-1].finished) this.finished = true;
@@ -553,16 +578,18 @@ class Round {
 
 
 class League {
-    constructor(teams, leagueRevenge) {
+    constructor(teams, revenges) {
         if (!teams) throw Error(ERRORS.LACK_OF_TEAMS_IN_LEAGUE[lang]);
 
         this.type = 'league';
         this.teams = teams;
-        this.leagueRevenge = leagueRevenge;
+        this.revenges = revenges;
         this.rounds = [];
         this.finished = false;
         this.generateLeague();
 
+        tourEmitter.emit('leagueCreated');
+        tourEmitter.emit('stageCreated');
         tourEmitter.listen('finishedMatch', (match) => {
             if (this.finished === true) return;
             if (this.rounds[this.rounds.length-1].finished) this.finished = true;
@@ -576,7 +603,7 @@ class League {
     generateLeague() {
         let repeatCount = 1;
         
-        if (this.leagueRevenge) repeatCount = 2;
+        if (this.revenges) repeatCount = 2;
 
         for (let i=1; i<=repeatCount; i++) {
             let isRevenge = false;
@@ -662,28 +689,46 @@ class League {
         else return false;
     }
     backup() {
-        let {type, teams, leagueRevenge, rounds, finished} = this;
+        let {type, teams, revenges, rounds, finished} = this;
         return {
             type,
             teams: teams.map(t => t.backup()),
-            leagueRevenge,
+            revenges,
             rounds: rounds.map(r => r.backup()),
             finished
         };
+    }
+    updateFromBackup(rounds, finished) {
+        this.finished = finished;
+        rounds.forEach((r, i) => {
+            let {matches, finished} = r;
+            // popraw matches
+            let roundNumber = i + 1;
+            matches.map(m => {
+                let newMatch = new Match(tour.getTeam(m.host), tour.getTeam(m.guest), m.stage, m.isRevenge);
+                let {hostGoals, guestGoals, finished, stage, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, isRevenge, partOfTie} = m;
+                newMatch.updateFromBackup(hostGoals, guestGoals, finished, stage, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, isRevenge, partOfTie);
+                return newMatch;
+            });
+            this.rounds.push(new Round(matches, `league-stage-${roundNumber}`));
+            // update Round
+        });
     }
 }
 
 
 class Cup {
-    constructor(teams, cupRevenge) {
+    constructor(teams, revenges) {
         if (!teams) throw Error(ERRORS.LACK_OF_TEAMS_IN_CUP[lang]);
 
         this.type = 'cup';
         this.teams = teams;
-        this.cupRevenge = cupRevenge;
+        this.revenges = revenges;
         this.rounds = []; // GENERATE NEW ROUND AT END OF LAST UNTIL FINAL
         this.finished = false;
         this.generateNextRound();
+        tourEmitter.emit('cupCreated');
+        tourEmitter.emit('stageCreated');
     }
 
     getWinnersToNextStage() {
@@ -733,9 +778,9 @@ class Cup {
                 // DODAJ WYCZYSZCZENIE STATYSTYK DRUŻYN PRZED NOWĄ RUNDĄ
                 teams.forEach(t => t.clearStats());
     
-                if (this.cupRevenge && teams.length > 2) matches.push(new Tie(new Match(team1, team2, nextStage), new Match(team2, team1, nextStage), nextStage));
-                else if (this.cupRevenge && teams.length === 2) matches.push(new Match(team1, team2, nextStage));
-                else if (!this.cupRevenge) matches.push(new Match(team1, team2, nextStage));
+                if (this.revenges && teams.length > 2) matches.push(new Tie(new Match(team1, team2, nextStage), new Match(team2, team1, nextStage), nextStage));
+                else if (this.revenges && teams.length === 2) matches.push(new Match(team1, team2, nextStage));
+                else if (!this.revenges) matches.push(new Match(team1, team2, nextStage));
             };
         };
         if (matches.length > 0) this.rounds.push(new Round(matches));
@@ -773,14 +818,37 @@ class Cup {
         };
     }
     backup() {
-        let {type, teams, cupRevenge, rounds, finished} = this;
+        let {type, teams, revenges, rounds, finished} = this;
         return {
             type,
             teams: teams.map(t => t.backup()),
-            cupRevenge,
+            revenges,
             rounds: rounds.map(r => r.backup()),
             finished
         };
+    }
+    updateFromBackup(rounds, finished) {
+        this.finished = finished;
+        rounds.forEach((r, i) => {
+            let {matches, finished} = r;
+            let roundNumber = i + 1;
+
+            if (matches.matches) {
+                // generate Tie but not in final
+                let ties = matches.map(t => new Tie(tour.getTeam(t.host), tour.getTeam(t.guest), t.stage));
+                ties.forEach(t => {
+                    let {finished, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, matches} = t;
+                    t.updateFromBackup(finished, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, matches);
+                });
+            } else {
+                matches = matches.map(m => new Match(tour.getTeam(m.host), tour.getTeam(m.guest), m.stage, m.isRevenge));
+                matches.forEach(m => {
+                    let {hostGoals, guestGoals, finished, stage, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, isRevenge, partOfTie} = m;
+                    m.updateFromBackup(hostGoals, guestGoals, finished, stage, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, isRevenge, partOfTie);
+                });
+                this.rounds.push(new Round(matches, `league-stage-${roundNumber}`));
+            };
+        });
     }
 }
 
@@ -825,6 +893,9 @@ class Tour {
         tourEmitter.listen('tableSorted', (match) => {
             // if (this.finished === true) return; // jeśli dodam tą linijkę, wtedy po ostatniej kolejce nie wykona się kod dekoratora
             this.decorateBestOnView();
+        });
+        tourEmitter.listen('stageCreated', () => {
+            setTimeout(() => this.updateAddingResultView(), 60);
         });
     }
     addTeam(newTeam) {
@@ -927,6 +998,9 @@ class Tour {
         };
 
     }
+    getTeam(name) {
+        return this.teams.find(t => t.name === name);
+    }
     backup() {
         let {name, type, leagueRevenge, cupRevenge, teams, stages, finished} = this;
         let backup = {
@@ -941,6 +1015,42 @@ class Tour {
         let backupJSON = JSON.stringify(backup);
         if (backup) localStorage.setItem('twoj_turniej_backup', backupJSON);
         else throw new Error(ERRORS.BACKUP_CREATION_FAILED[lang]);
+    }
+    loadFromBackup() {
+        let backupJSON = localStorage.getItem('twoj_turniej_backup');
+        
+        if (backupJSON) {
+            let bTour = JSON.parse(backupJSON);
+            let {name, type, leagueRevenge, cupRevenge, finished, teams, stages} = bTour;
+            this.name = name;
+            this.type = type;
+            this.leagueRevenge = leagueRevenge;
+            this.cupRevenge = cupRevenge;
+            this.finished = finished;
+            this.teams = teams.map(t => new Team(t)); // odtwórz drużyny bez statystyk
+
+            stages.forEach(s => {
+                let {type, teams, revenges, rounds, finished} = s;
+
+                teams = teams.map(t => this.getTeam(t));
+                let stage;
+                if (type === 'league') stage = new League(teams, revenges);
+                else if (type === 'cup') stage = new Cup(teams, revenges);
+
+                if (stage) {
+                    stage.updateFromBackup(rounds, finished);
+                    this.stages.push(stage);
+                };
+            });
+            // dodawaj statystyki po wszystaniu ligi
+            // odtwórz fixtures
+            // odtwórz tabelę ligową
+            // dodaj statystykę ostatniego meczy
+
+            //this.stages = stages; // odtwórz
+
+            // czy view jest dobrze wygenerowany
+        };
     }
 }
 
