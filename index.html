@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge,chrome=1">
     <title>Twój turniej</title>
+    <link rel="Shortcut icon" href="icon.png" />
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.10/css/all.css" integrity="sha384-+d0P83n9kaQMCwj8F4RJB66tzIwOKmrdb46+porD/OvrJ+37WqIM7UoBtwHO6Nlg" crossorigin="anonymous">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.10/css/all.css" integrity="sha384-+d0P83n9kaQMCwj8F4RJB66tzIwOKmrdb46+porD/OvrJ+37WqIM7UoBtwHO6Nlg" crossorigin="anonymous">
     <link href="https://fonts.googleapis.com/css?family=Karla|Varela+Round" rel="stylesheet"> 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
@@ -13,19 +15,19 @@
 </head>
 <body>
     <div id="backup">
-        <input type="button" class="save-backup" value="Save backup">
-        <input type="button" class="load-backup hidden" value="Load backup">
-        <input type="button" class="clear-backup" value="Clear backup">
+        <input type="button" class="save-backup btn" value="Save">
+        <input type="button" class="load-backup btn hidden" value="Load">
+        <input type="button" class="clear-backup btn" value="Clear">
     </div>
 
     <div id="add-result" class="hidden">
-        <div class="adding-result"><span class="host"></span><input type="number" min="0" class="host-goals">:<input type="number" class="guest-goals"><span class="guest"></span><input type="button" class="add-result" value="Add result"></div>
-        <input type="button" class="goto-league-view hidden" value="League">
-        <input type="button" class="goto-cup-view hidden" value="Cup">
+        <div class="adding-result"><span class="host"></span><input type="number" min="0" class="host-goals">:<input type="number" class="guest-goals"><span class="guest"></span><input type="button" class="add-result btn" value="Add result"></div>
+        <input type="button" class="goto-league-view btn hidden" value="League">
+        <input type="button" class="goto-cup-view btn hidden" value="Cup">
     </div>
 
     <div id="adding-teams" class="page">
-        <input type="text" min="3" class="team-name" placeholder="np.Giganci"></input><input type="button" class="add-team" value="Add"><input type="button" class="ready-teams hidden" value="Ready?">
+        <input type="text" min="3" class="team-name" placeholder="np.Giganci"></input><input type="button" class="add-team btn" value="Add"><input type="button" class="ready-teams btn hidden" value="Ready?"><br>
         <div class="table">
             <table class="added-teams">
                 <thead>
@@ -37,8 +39,8 @@
     </div>
 
     <div id="tour-settings" class="page hidden">
-        <input type="button" class="back-to-teams" value="Wstecz">
-        <input type="button" class="start-tour" value="Start tour">
+        <input type="button" class="back-to-teams btn" value="Wstecz">
+        <input type="button" class="start-tour btn" value="Start tour">
         <input type="text" min="3" class="tour-name" placeholder="np.Puchar Burmistrza Tczewa"></input>
         <select name="tour-type" id="tour-type">
             <option value="l" class="league-type">Liga</option>
@@ -53,7 +55,7 @@
         <div class="table">
             <table class="league-fixtures">
                 <thead>
-                    <tr><th>Host</th><th>Result</th><th>Guest</th></tr>
+                    <tr><th>Host</th><th></th><th>Guest</th></tr>
                 </thead>
                 <tbody></tbody>
             </table>

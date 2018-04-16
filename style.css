@@ -1,6 +1,7 @@
 body {
     margin: 0;
     padding: 0;
+    font-family: 'Varela Round', sans-serif;
 }
 
 .hidden {
@@ -10,13 +11,104 @@ body {
 .first,
 .league-table tr:nth-child(1) .position {
     background-color: #ffd700;
+    box-shadow: 1px 1px 1px black;
 }
 .second,
 .league-table tr:nth-child(2) .position {
     background-color: #c0c0c0;
+    box-shadow: 1px 1px 1px black;
 }
 .third,
 .league-table tr:nth-child(3) .position {
     color: #ffffff;
     background-color: #744705;
+    box-shadow: 1px 1px 1px black;
 }
+
+.btn {
+    text-transform: uppercase;
+    min-width: 60px;
+    height: 40px;
+    border-radius: 5px;
+    background: linear-gradient(to right bottom, #eeeeee, #ffffff);
+    filter: drop-shadow(1px 1px 1px #000000);
+    font-family: 'Varela Round', sans-serif;
+    text-shadow: 1px 1px 1px grey;
+}
+.btn-active {
+    filter: drop-shadow(2px 2px 2px #ffff00);
+}
+
+input[type="text"], input[type="number"], select {
+    display: inline-flex;
+    vertical-align: middle;
+    height: 40px;
+    margin-right: 5px;
+    padding-left: 5px;
+    border-radius: 5px;
+    font-size: 20px;
+}
+
+.added-teams, .league-revenge {
+    font-size: 20px;
+}
+
+#adding-teams, #add-result {
+    padding: 10px;
+    border-radius: 5px;
+    margin: 10px;
+    background-color: rgb(168, 196, 219);
+}
+
+.host-goals, .guest-goals {
+    width: 50px;
+}
+
+.ready-teams, .add-result {
+    margin-left: 10px;
+}
+
+#backup {
+    padding: 10px;
+    margin-bottom: 5px;
+    background-color: rgb(96, 162, 216);
+}
+#backup > * {
+    margin: 5px;
+}
+
+#league-view {
+    text-align: center;
+    vertical-align: middle;
+    font-size: 30px;
+}
+
+.table {
+    display: inline-flex;
+    margin-top: 20px;
+    margin-left: 50px;
+    filter: drop-shadow(1px 1px 1px black);
+}
+
+th, td  {
+    padding: 15px;
+    border-radius: 5px;
+    text-shadow: 1px 1px 1px #b7b2b2;
+}
+
+.league-fixtures, .league-table {
+    border-radius: 5px;
+    padding: 10px;
+    background-color: rgb(226, 232, 238);
+}
+
+table, th, td {
+    border-spacing: 5px;
+ }
+ .league-fixtures th:nth-child(1) {
+    background-color: none;
+ }
+
+ thead {
+     background-color: #b8c9f5;
+ }
