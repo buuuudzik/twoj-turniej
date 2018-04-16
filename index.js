@@ -74,8 +74,8 @@ const ALERTS = {
         pl: 'Nie możesz dodać wyniku bez wypełnienia goli!'
     },
     TOURNAMENT_IS_FINISHED: {
-        en: 'This was the last match in this tour. See you next time!',
-        pl: 'To był ostatni mecz w turnieju. Do zobaczenia następnym razem!'
+        en: 'This was the last match in this tour. The winner is',
+        pl: 'To był ostatni mecz w turnieju. Zwyciężyła drużyna'
     },
     PENALTIES_START: {
         en: 'Penalties time!',
@@ -246,24 +246,24 @@ class Match {
         this.guestPenaltiesGoals = 0;
         this.penaltiesWinner = '';
         this.isRevenge = isRevenge;
+        this.partOfTie = false;
+        
         if (this.stage.match(/league/g)) {
             this.onFixturesList = $(`<tr><td>${host.name}</td><td class="result"></td><td>${guest.name}</td></tr>`).appendTo(DOM.leagueFixturesJQ);
         } else if (this.stage.match(/cup/g)) {
             this.onFixturesList = $(`<tr><td>${host.name}</td><td class="result"></td><td>${guest.name}</td></tr>`).appendTo(DOM.cupFixturesJQ);
-            if (stage.match(/cup-1\/1/g)) this.penalties = true;
+            if (this.partOfTie) {
+                if (stage.match(/cup-1\/1/g) || this.isRevenge) this.penalties = true;
+            } else this.penalties = true;
         };
     }
     addResult(hostGoals, guestGoals) {
         this.finished = true;
         this.hostGoals = hostGoals;
         this.guestGoals = guestGoals;
-        if (this.stage.match(/league/g)) {
-            this.updateTeamsResults();
-            this.onFixturesList.find('.result').text(`${hostGoals}:${guestGoals}`);
-        } else {
-            this.onFixturesList.find('.result').text(`${hostGoals}:${guestGoals}`);
-        };
-        if (hostGoals === guestGoals && this.penalties) {console.log('karne 5'); this.playPenalties();};
+        if (this.stage.match(/league/g)) this.updateTeamsResults();
+        this.onFixturesList.find('.result').text(`${hostGoals}:${guestGoals}`);
+        if (hostGoals === guestGoals && this.penalties) this.playPenalties();;
         tourEmitter.emit('finishedMatch', this);
     }
     isHost(name) {
@@ -336,9 +336,11 @@ class Match {
         this.hostPenaltiesGoals = parseInt(prompt(`Podaj gole dla ${host.name}:`, 5)); // ZMIEŃ NA LEPSZĄ WERSJĘ
         this.guestPenaltiesGoals = parseInt(prompt(`Podaj gole dla ${guest.name}:`, 5)); // ZMIEŃ NA LEPSZĄ WERSJĘ
 
+        let lastResultJQ = this.onFixturesList.find('.result');
+        lastResultJQ.text(`${lastResultJQ.text()} (${this.hostPenaltiesGoals}:${this.guestPenaltiesGoals})`);
+
         if (this.hostPenaltiesGoals > this.guestPenaltiesGoals) {
             this.penaltiesWinner = host;
-            console.log(this);
             return host;
         } else {
             this.penaltiesWinner = guest;
@@ -358,6 +360,7 @@ class Tie {
         this.guestPenaltiesGoals = 0;
         this.penaltiesWinner = '';
         this.finished = false;
+        this.matches.forEach(m => m.partOfTie = true);
 
         tourEmitter.listen('finishedMatch', (match) => {
             if (this.finished) return;
@@ -428,7 +431,7 @@ class Tie {
         
         nextMatch = this.getNextMatch();
         if (!nextMatch) {
-            if (!this.whoWon() && this.penalties) {console.log('karne 2'); this.playPenalties();};
+            if (!this.whoWon() && this.penalties) this.playPenalties();
         };
     }
     playPenalties() {
@@ -440,6 +443,9 @@ class Tie {
         console.log('to', this.matches)
         m2.hostPenaltiesGoals = t1Penalties;
         m2.guestPenaltiesGoals = t2Penalties;
+
+        let lastResultJQ = m2.onFixturesList.find('.result');
+        lastResultJQ.text(`${lastResultJQ.text()} (${m2.hostPenaltiesGoals}:${m2.guestPenaltiesGoals})`);
 
         if (t1Penalties > t2Penalties) {
             this.penaltiesWinner = m2.host;
@@ -639,6 +645,7 @@ class Cup {
         // prepare new table of teams which win in last round
         // if last round was final then return nothing
         let teams = this.getWinnersToNextStage();
+        
         if (teams.length === 0) {
             // AFTER FINAL
             // FIRST CHECK IF PENALTIES WASN'T PLAYED
@@ -650,49 +657,58 @@ class Cup {
                     console.log('karne 4'); 
                     lastMatch.playPenalties();
                     winner = lastMatch.whoWon();
-                    alert(`${ALERTS.TOURNAMENT_IS_FINISHED[lang]}. Zwyciężył ${winner.name}!`);
+                    alert(`${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner.name}!`);
                 };
             };
             return false;
+        } else if (teams.length === 1) {
+            // komunikat o wygraniu pucharu
+            let [winner] = teams;
+            alert(`${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner.name}!`);
         };
 
         let matches = [];
         let nextStage = `cup-${this.getNextRoundName()}`;
-        for (let i=0; i<teams.length; i=i+2) {
-            let team1 = teams[i], team2 = teams[i+1];
 
-            // DODAJ WYCZYSZCZENIE STATYSTYK DRUŻYN PRZED NOWĄ RUNDĄ
-            teams.forEach(t => t.clearStats());
-
-            if (this.cupRevenge && teams.length > 2) matches.push(new Tie(new Match(team1, team2, nextStage), new Match(team2, team1, nextStage), nextStage));
-            else if (this.cupRevenge && teams.length === 2) matches.push(new Match(team1, team2, nextStage));
-            else if (!this.cupRevenge) matches.push(new Match(team1, team2, nextStage));
+        if (teams.length > 1) {
+            for (let i=0; i<teams.length; i=i+2) {
+                let team1 = teams[i], team2 = teams[i+1];
+    
+                // DODAJ WYCZYSZCZENIE STATYSTYK DRUŻYN PRZED NOWĄ RUNDĄ
+                teams.forEach(t => t.clearStats());
+    
+                if (this.cupRevenge && teams.length > 2) matches.push(new Tie(new Match(team1, team2, nextStage), new Match(team2, team1, nextStage), nextStage));
+                else if (this.cupRevenge && teams.length === 2) matches.push(new Match(team1, team2, nextStage));
+                else if (!this.cupRevenge) matches.push(new Match(team1, team2, nextStage));
+            };
         };
         if (matches.length > 0) this.rounds.push(new Round(matches));
     }
     getRoundName() {
-        if (this.rounds) return `1/${this.rounds[this.rounds.length-1].length}`;
+        let {rounds} = this;
+        if (rounds) return `1/${rounds[rounds.length-1].length}`;
         else return false;
     }
     getNextRoundName() {
-        let lastRound = this.rounds[this.rounds.length-1];
-        if (!lastRound) return `1/${this.teams.length/2}`; // zmien na ALERTS
+        let {rounds, teams} = this;
+        let lastRound = rounds[rounds.length-1];
+        if (!lastRound) return `1/${teams.length/2}`; // zmien na ALERTS
 
-        let numberOfMatchesInCurrentStage = this.rounds[this.rounds.length-1].matches.length;
-        console.log('number of matches in current stage', numberOfMatchesInCurrentStage);
-        if (numberOfMatchesInCurrentStage >= 2) return `1/${numberOfMatchesInCurrentStage/4}`;
-        else if (numberOfMatchesInCurrentStage === 1) return `1/1`;
+        let matchesInCurrentStage = rounds[rounds.length-1].matches.length;
+
+        if (matchesInCurrentStage >= 2) return `1/${matchesInCurrentStage/4}`;
+        else if (matchesInCurrentStage === 1) return `1/1`;
         else return false;
     }
 
     getNextMatch() {
-        // BELOW IS ONLY A COPY FROM A LEAGUE CLASS, IT MUST BE CHANGED
-        let round = this.rounds.find(r => !r.finished);
+        let {rounds} = this;
+        let round = rounds.find(r => !r.finished);
 
         if (round) return round.getNextMatch();
         else {
             this.generateNextRound();
-            round = this.rounds.find(r => !r.finished);
+            round = rounds.find(r => !r.finished);
             if (round) {
                 let nextMatch = round.getNextMatch();
                 if (nextMatch) return nextMatch;
@@ -808,7 +824,7 @@ class Tour {
     addResultToNextMatch(hostGoals, guestGoals) {
         let nextMatch = this.getNextMatch();
         if (nextMatch) nextMatch.addResult(hostGoals, guestGoals);
-        else alert(ALERTS.TOURNAMENT_IS_FINISHED[lang]);
+        else alert(`${ALERTS.TOURNAMENT_IS_FINISHED[lang]}`); // dodaj nazwę zwycięzcy
     }
     updateAddingResultView() {
         let nextMatch = this.getNextMatch();
@@ -956,3 +972,5 @@ DOM.goToLeagueViewBtnJQ.on('click', function() {
 // wyświetlaj karne obok wyniku podstawowego
 
 // dodaj obsługę skrótów np. ##a-e = dodanie zawodników a, b, c, d, e
+
+// wyświetlaj przyciski przechodzenia pomiędzy fazami turnieju tylko jeśli są co najmniej 2 fazy
