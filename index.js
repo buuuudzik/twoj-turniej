@@ -278,6 +278,12 @@ class Match {
         if (hostGoals === guestGoals && this.penalties) this.playPenalties();;
         tourEmitter.emit('finishedMatch', this);
     }
+    updateResultOnView() {
+        if (!this.finished) return;
+        if (this.stage.match(/league/g)) this.updateTeamsResults();
+        this.onFixturesList.find('.result').text(`${this.hostGoals}:${this.guestGoals}`);
+        console.log(this.hostGoals, this.guestGoals, this.penalties, !this.penaltiesWinner, this);
+    }
     isHost(name) {
         if (this.host.name === name) return true;
         else return false;
@@ -377,7 +383,7 @@ class Match {
             partOfTie
         };
     }
-    updateFromBackup(hostGoals, guestGoals, finished, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, partOfTie) {
+    updateFromBackup(hostGoals, guestGoals, finished, stage, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, partOfTie) {
         this.hostGoals = hostGoals;
         this.guestGoals = guestGoals;
         this.finished = finished;
@@ -386,6 +392,7 @@ class Match {
         this.guestPenaltiesGoals = guestPenaltiesGoals;
         this.penaltiesWinner = penaltiesWinner;
         this.partOfTie = partOfTie;
+        this.updateResultOnView();
     }
 }
 
@@ -699,21 +706,25 @@ class League {
         };
     }
     updateFromBackup(rounds, finished) {
+        // CLEAR DEFAULT ROUNDS
+        this.rounds.length = 0;
+        DOM.leagueFixturesJQ.find('tbody').empty();
+
         this.finished = finished;
         rounds.forEach((r, i) => {
             let {matches, finished} = r;
             // popraw matches
             let roundNumber = i + 1;
-            matches.map(m => {
+            matches = matches.map(m => {
                 let newMatch = new Match(tour.getTeam(m.host), tour.getTeam(m.guest), m.stage, m.isRevenge);
                 let {hostGoals, guestGoals, finished, stage, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, isRevenge, partOfTie} = m;
                 newMatch.updateFromBackup(hostGoals, guestGoals, finished, stage, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, isRevenge, partOfTie);
                 return newMatch;
             });
-            this.rounds.length = 0;
             this.rounds.push(new Round(matches, `league-stage-${roundNumber}`));
-            // update Round
         });
+        this.sortLeagueTable();
+        goToPage(DOM.leagueViewPageJQ);
     }
 }
 
@@ -829,6 +840,9 @@ class Cup {
         };
     }
     updateFromBackup(rounds, finished) {
+        // CLEAR DEFAULT ROUNDS
+        this.rounds.length = 0;
+
         this.finished = finished;
         rounds.forEach((r, i) => {
             let {matches, finished} = r;
