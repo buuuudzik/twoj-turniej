@@ -57,6 +57,10 @@ const ERRORS = {
     LACK_OF_MATCHES_IN_ROUND: {
         en: 'You cannot create a round without matches',
         pl: 'Nie można zdefiniować rundy bez podania meczów'
+    },
+    BACKUP_CREATION_FAILED: {
+        en: 'Backup creation failed!',
+        pl: 'Błąd przy tworzeniu backupu. Backup nie utworzony.'
     }
 }
 
@@ -80,6 +84,10 @@ const ALERTS = {
     PENALTIES_START: {
         en: 'Penalties time!',
         pl: 'Czas na rzuty karne!'
+    },
+    TOO_MUCH_TEAMS: {
+        en: 'It can be maximum 64 teams in the tour!',
+        pl: 'Maksymalnie może być 64 drużyny!'
     }
 }
 
@@ -930,7 +938,9 @@ class Tour {
             stages: stages.map(m => m.backup()),
             finished
         };
-        console.log(backup);
+        let backupJSON = JSON.stringify(backup);
+        if (backup) localStorage.setItem('twoj_turniej_backup', backupJSON);
+        else throw new Error(ERRORS.BACKUP_CREATION_FAILED[lang]);
     }
 }
 
@@ -938,19 +948,64 @@ const tourEmitter = new TourEmitter();
 const tour = new Tour();
 
 
-function addTeam() {
+function addTeam(name) {
+    // JEŚLI JUŻ JEST 64 DRUŻYNY, NIE MOŻNA DODAĆ WIĘCEJ NIŻ 64 DRUŻYNY
+    if (!name) return alert(ALERTS.LACK_OF_NAME[lang]);
+    if (tour.teams.length >= 64) return alert(ALERTS.TOO_MUCH_TEAMS[lang]);
+    tour.addTeam(name);
+};
+
+function addTeamFromInput() {
     // JEŚLI JUŻ JEST 64 DRUŻYNY, NIE MOŻNA DODAĆ WIĘCEJ NIŻ 64 DRUŻYNY
     let {newTeamJQ} = DOM;
-    let newTeam = newTeamJQ.val();
-    if (!newTeam) return alert(ALERTS.LACK_OF_NAME[lang]);
-    tour.addTeam(newTeam);
+    let name = newTeamJQ.val();
+    if (addTeamsWhenSpecialCode(name)) return;
+    addTeam(name);
     newTeamJQ.val('');
     newTeamJQ.focus();
 };
 
-DOM.addTeamBtnJQ.on('click', addTeam);
+let teamNames = [
+    {en: 'Giants', pl: 'Giganci'},
+    {en: 'Shepherds', pl: 'Pasterze'},
+    {en: 'Carpenters', pl: 'Stolarze'},
+    {en: 'Mechanics', pl: 'Mechanicy'},
+    {en: 'Sailors', pl: 'Żeglarze'},
+    {en: 'Shopkeepers', pl: 'Sklepikarze'},
+    {en: 'Apothecaries', pl: 'Aptekarze'},
+    {en: 'Amateurs', pl: 'Amatorzy'},
+    {en: 'Footballers', pl: 'Piłkarze'},
+    {en: 'Golfers', pl: 'Golfiści'},
+    {en: 'Singers', pl: 'Piosenkarze'},
+    {en: 'Stars', pl: 'Gwiazdy'},
+    {en: 'Planets', pl: 'Planety'},
+    {en: 'Postmans', pl: 'Listonosze'},
+    {en: 'Scientists', pl: 'Naukowcy'},
+    {en: 'Teachers', pl: 'Nauczyciele'},
+    {en: 'Pupils', pl: 'Uczniowie'},
+    {en: 'Parents', pl: 'Rodzice'},
+    {en: 'Kids', pl: 'Dzieci'},
+    {en: 'Drivers', pl: 'Kierowcy'},
+]; // POWINNO BYć 64
+
+function addTeamsWhenSpecialCode(code) {
+    let generateTeams = '##g';
+    if (code.match(generateTeams)) {
+        code = code.slice(generateTeams.length, code.length);
+        let type = code[0];
+        if (type === 's') {
+            let howMany = parseInt(code.slice(1, code.length));
+            for (let i=0; i<howMany; i++) {
+                addTeam(teamNames[i][lang]);
+            };
+            return true;
+        };
+    };
+};
+
+DOM.addTeamBtnJQ.on('click', addTeamFromInput);
 $(document).on('keydown', function (event) {  
-    if (event.which == 13 && event.target === DOM.newTeamJQ[0]) addTeam();                
+    if (event.which == 13 && event.target === DOM.newTeamJQ[0]) addTeamFromInput();                
 });
 
 DOM.readyTeamsBtnJQ.on('click', function() {
@@ -1048,3 +1103,8 @@ DOM.goToLeagueViewBtnJQ.on('click', function() {
 // wyświetlaj przyciski przechodzenia pomiędzy fazami turnieju tylko jeśli są co najmniej 2 fazy
 
 // zablokuj możliwość dodania dwóch drużyn o tej samej nazwie
+
+// Dodaj stoper, który startuje i odlicza zdefiniowany czas
+
+// Popraw sortowanie, ponieważ nie działa poprawnie w lidze, sprawdzone na ##gs12
+// TRZEBA PO PROSTU NA POCZĄTKU SORTOWAĆ WSZYSTKIE DRUŻYNY
