@@ -710,6 +710,7 @@ class League {
                 newMatch.updateFromBackup(hostGoals, guestGoals, finished, stage, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, isRevenge, partOfTie);
                 return newMatch;
             });
+            this.rounds.length = 0;
             this.rounds.push(new Round(matches, `league-stage-${roundNumber}`));
             // update Round
         });
