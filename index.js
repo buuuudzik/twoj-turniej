@@ -228,6 +228,9 @@ class Team {
         this.goalsScored = 0;    
         this.goalsLost = 0;    
     }
+    backup() {
+        
+    }
 }
 
 // ADD CHANGABLE POINTS FOR WIN/DRAW/LOOSE EG. IN FOOTBALL 3/1/0
@@ -348,6 +351,9 @@ class Match {
             return guest;
         };
     }
+    backup() {
+        
+    }
 }
 
 
@@ -458,7 +464,9 @@ class Tie {
     clearStats() {
         this.matches.forEach(m => m.clearStats());
     }
-    
+    backup() {
+        
+    }
 }
 
 
@@ -502,7 +510,9 @@ class Round {
         });
         return winners;
     }
-
+    backup() {
+        
+    }
 }
 
 
@@ -615,6 +625,9 @@ class League {
         if (qualifiedTeams) return qualifiedTeams;
         else return false;
     }
+    backup() {
+        
+    }
 }
 
 
@@ -715,6 +728,9 @@ class Cup {
                 else return false;
             };
         };
+    }
+    backup() {
+        
     }
 }
 
@@ -859,6 +875,9 @@ class Tour {
                 leagueFixturesJQ.find(`tbody td:contains('${third}')`).addClass('third');
             };
         };
+
+    }
+    backup() {
 
     }
 }
