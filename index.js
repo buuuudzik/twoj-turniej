@@ -724,6 +724,7 @@ class League {
             this.rounds.push(new Round(matches, `league-stage-${roundNumber}`));
         });
         this.sortLeagueTable();
+        if (!this.finished) show(DOM.addResultBarJQ);
         goToPage(DOM.leagueViewPageJQ);
     }
 }
@@ -842,6 +843,7 @@ class Cup {
     updateFromBackup(rounds, finished) {
         // CLEAR DEFAULT ROUNDS
         this.rounds.length = 0;
+        DOM.cupFixturesJQ.find('tbody').empty();
 
         this.finished = finished;
         rounds.forEach((r, i) => {
@@ -864,6 +866,8 @@ class Cup {
                 this.rounds.push(new Round(matches, `league-stage-${roundNumber}`));
             };
         });
+        if (!this.finished) show(DOM.addResultBarJQ);
+        goToPage(DOM.cupViewPageJQ);
     }
 }
 
