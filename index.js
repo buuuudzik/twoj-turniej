@@ -229,7 +229,8 @@ class Team {
         this.goalsLost = 0;    
     }
     backup() {
-        
+        let {name} = this; // BRAKUJE reszty właściwości
+        return name;
     }
 }
 
@@ -352,7 +353,21 @@ class Match {
         };
     }
     backup() {
-        
+        let {host, guest, hostGoals, guestGoals, finished, stage, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, isRevenge, partOfTie} = this;
+        return {
+            host: host.name,
+            guest: guest.name,
+            hostGoals,
+            guestGoals,
+            finished,
+            stage,
+            penalties,
+            hostPenaltiesGoals,
+            guestPenaltiesGoals,
+            penaltiesWinner,
+            isRevenge,
+            partOfTie
+        };
     }
 }
 
@@ -465,7 +480,16 @@ class Tie {
         this.matches.forEach(m => m.clearStats());
     }
     backup() {
-        
+        let {matches, stage, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, finished} = this;
+        return {
+            matches: matches.map(v => v.backup()),
+            stage,
+            penalties,
+            hostPenaltiesGoals,
+            guestPenaltiesGoals,
+            penaltiesWinner,
+            finished
+        };
     }
 }
 
@@ -511,7 +535,11 @@ class Round {
         return winners;
     }
     backup() {
-        
+        let {matches, finished} = this;
+        return {
+            matches: matches.map(v => v.backup()),
+            finished
+        };
     }
 }
 
@@ -626,7 +654,14 @@ class League {
         else return false;
     }
     backup() {
-        
+        let {type, teams, leagueRevenge, rounds, finished} = this;
+        return {
+            type,
+            teams: teams.map(t => t.backup()),
+            leagueRevenge,
+            rounds: rounds.map(r => r.backup()),
+            finished
+        };
     }
 }
 
@@ -730,7 +765,14 @@ class Cup {
         };
     }
     backup() {
-        
+        let {type, teams, cupRevenge, rounds, finished} = this;
+        return {
+            type,
+            teams: teams.map(t => t.backup()),
+            cupRevenge,
+            rounds: rounds.map(r => r.backup()),
+            finished
+        };
     }
 }
 
@@ -878,7 +920,17 @@ class Tour {
 
     }
     backup() {
-
+        let {name, type, leagueRevenge, cupRevenge, teams, stages, finished} = this;
+        let backup = {
+            name,
+            type,
+            leagueRevenge,
+            cupRevenge,
+            teams: teams.map(t => t.backup()),
+            stages: stages.map(m => m.backup()),
+            finished
+        };
+        console.log(backup);
     }
 }
 
@@ -994,3 +1046,5 @@ DOM.goToLeagueViewBtnJQ.on('click', function() {
 // dodaj obsługę skrótów np. ##a-e = dodanie zawodników a, b, c, d, e
 
 // wyświetlaj przyciski przechodzenia pomiędzy fazami turnieju tylko jeśli są co najmniej 2 fazy
+
+// zablokuj możliwość dodania dwóch drużyn o tej samej nazwie
