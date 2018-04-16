@@ -31,7 +31,7 @@ function intFromText(objJQ) {
 };
 
 // CHOOSE A LANGUAGE
-let lang = 'en';
+let lang = 'pl'; // pl, en
 
 const ERRORS = {
     LACK_OF_NAME: {
@@ -742,6 +742,11 @@ class Tour {
                         let teams = this.stages[this.stages.length-1].getQualifiedTeams();
                         this.stages.push(new Cup(teams, this.cupRevenge));
                         show(DOM.goToCupViewBtnJQ);
+
+                        // SHOW OTHER STAGE VIEW
+                        show(DOM.goToLeagueViewBtnJQ);
+                        show(DOM.goToCupViewBtnJQ);
+
                         goToPage(DOM.cupViewPageJQ);
                     } else {
                         this.finished = true;
@@ -800,11 +805,7 @@ class Tour {
 
         if (type === 'l' || type === 'lc') {
             this.stages.push(new League(teams, leagueRevenge));
-            show(DOM.goToLeagueViewBtnJQ);
-        } else {
-            this.stages.push(new Cup(teams, cupRevenge));
-            show(DOM.goToCupViewBtnJQ);
-        };
+        } else this.stages.push(new Cup(teams, cupRevenge));
 
         switch(this.type) {
             case 'l': goToPage(DOM.leagueViewPageJQ); break;
@@ -916,7 +917,7 @@ function addResult() {
 
 DOM.addResultBtnJQ.on('click', addResult);
 $(document).on('keydown', function(event) {  
-    if (event.which == 13 && (event.target === DOM.addingResultHostGoalsJQ[0] || event.target === DOM.addingResultGuestGoalsJQ[0])) addResult();                
+    if (event.which == 13 && (event.target === DOM.addingResultHostGoalsJQ[0] || event.target === DOM.addingResultGuestGoalsJQ[0])) addResult();   
 });
 
 DOM.goToCupViewBtnJQ.on('click', function() {  
