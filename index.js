@@ -29,6 +29,15 @@ function goToPage(objJQ) {
 function intFromText(objJQ) {
     return parseInt(objJQ.text());
 };
+function toggleBackupBtns() {
+    if (localStorage.getItem('twoj_turniej_backup')) {
+        show(DOM.loadBackupBtnJQ);
+        show(DOM.clearBackupBtnJQ);
+    } else {
+        hide(DOM.loadBackupBtnJQ);
+        hide(DOM.clearBackupBtnJQ);
+    };
+};
 
 // CHOOSE A LANGUAGE
 let lang = 'pl'; // pl, en
@@ -146,6 +155,9 @@ const DOM = {
     cupFixturesJQ: $('.cup-fixtures'),
     goToCupViewBtnJQ: $('.goto-cup-view'),
     goToLeagueViewBtnJQ: $('.goto-league-view'),
+    saveBackupBtnJQ: $('.save-backup'),
+    loadBackupBtnJQ: $('.load-backup'),
+    clearBackupBtnJQ: $('.clear-backup'),
 }
 
 // GLOBAL EMITTER OBJECTS FOR CONTROLLING OF DATA FLOW IN APP
@@ -228,6 +240,19 @@ class Team {
             let belowRow = this.onLeagueTable.next();
         };
     }
+    recalcStats() {
+        this.matches.forEach((m, i) => {
+            let stats = m.getTeamStats(this.name);
+            let {points, won, draw, lost, goalsScored, goalsLost} = stats;
+            
+            this.points += points;
+            this.won += won;
+            this.draw += draw;
+            this.lost += lost;
+            this.goalsScored += goalsScored;
+            this.goalsLost += goalsLost;
+        });
+    }
     clearStats() {
         this.won = 0;    
         this.draw = 0;    
@@ -282,7 +307,6 @@ class Match {
         if (!this.finished) return;
         if (this.stage.match(/league/g)) this.updateTeamsResults();
         this.onFixturesList.find('.result').text(`${this.hostGoals}:${this.guestGoals}`);
-        console.log(this.hostGoals, this.guestGoals, this.penalties, !this.penaltiesWinner, this);
     }
     isHost(name) {
         if (this.host.name === name) return true;
@@ -346,6 +370,24 @@ class Match {
         if (hostGoals > guestGoals) return host;
         else if (hostGoals < guestGoals) return guest;
         else return this.penaltiesWinner;
+    }
+    getTeamStats(name) {
+        let {host, guest, hostGoals, guestGoals} = this;
+        let points, won, draw, lost, goalsScored, goalsLost;
+        
+        if (name === host.name) {
+            goalsScored = hostGoals;
+            goalsLost = guestGoals;
+        } else if (name === guest.name) {
+            goalsScored = guestGoals;
+            goalsLost = hostGoals;
+        } else return {points: 0, won: 0, draw: 0, lost: 0, goalsScored: 0, goalsLost: 0};
+
+        if (goalsScored === goalsLost) {points = 1; won = 0, draw = 1, lost = 0}
+        else if (goalsScored>goalsLost) {points = 3; won = 1, draw = 0, lost = 0}
+        else if (goalsScored<goalsLost) {points = 0; won = 0, draw = 0, lost = 1};
+        
+        return {points, won, draw, lost, goalsScored, goalsLost};
     }
     playPenalties() {
         // PRZEPROWADŹ KARNE!!!
@@ -560,13 +602,12 @@ class Round {
             if (winner) winners.push(winner);
             else {
                 if (m.isDraw() && m.penalties) {
-                    console.log('karne 3'); 
                     m.playPenalties();
                     winners.push(m.whoWon());
                 };
             };
         });
-        console.log('winners', winners);
+
         if (!winners) return console.log('There is no winners!'); // ZMIEŃ TO
         winners.forEach(w => {
             console.log(w);
@@ -721,10 +762,22 @@ class League {
                 newMatch.updateFromBackup(hostGoals, guestGoals, finished, stage, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, isRevenge, partOfTie);
                 return newMatch;
             });
-            this.rounds.push(new Round(matches, `league-stage-${roundNumber}`));
+            let round = new Round(matches, `league-stage-${roundNumber}`);
+            round.finished = finished;
+            this.rounds.push(round);
         });
+        // PRZELICZ WYNIK ZAWODNIKÓW
         this.sortLeagueTable();
+        tour.teams.forEach(t => t.recalcStats());
+        tour.decorateBestOnView();
         if (!this.finished) show(DOM.addResultBarJQ);
+
+        setTimeout(() => {
+            if (tour.stages.length>1) {
+                show(DOM.goToLeagueViewBtnJQ);
+                show(DOM.goToCupViewBtnJQ);
+            };
+        }, 60);
         goToPage(DOM.leagueViewPageJQ);
     }
 }
@@ -863,10 +916,21 @@ class Cup {
                     let {hostGoals, guestGoals, finished, stage, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, isRevenge, partOfTie} = m;
                     m.updateFromBackup(hostGoals, guestGoals, finished, stage, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, isRevenge, partOfTie);
                 });
-                this.rounds.push(new Round(matches, `league-stage-${roundNumber}`));
+                let round = new Round(matches, `cup-${roundNumber}`);
+                round.finished = finished;
+                this.rounds.push(round);
             };
         });
         if (!this.finished) show(DOM.addResultBarJQ);
+        // WYZERUJ WYNIKI ZAWODKÓW
+        this.teams.forEach(t => t.clearStats());
+        
+        setTimeout(() => {
+            if (tour.stages.length>1) {
+                show(DOM.goToLeagueViewBtnJQ);
+                show(DOM.goToCupViewBtnJQ);
+            };
+        }, 60);
         goToPage(DOM.cupViewPageJQ);
     }
 }
@@ -903,7 +967,7 @@ class Tour {
                         goToPage(DOM.cupViewPageJQ);
                     } else {
                         this.finished = true;
-                        hide(DOM.addingResultJQ)
+                        hide(DOM.addingResultJQ);
                         alert(ALERTS.TOURNAMENT_IS_FINISHED[lang]);
                     };
                 };
@@ -975,6 +1039,7 @@ class Tour {
             if (!stage.finished) return true;
             else return false;
         });
+        
         if (stage) return stage.getNextMatch();
         else return false;
     }
@@ -1061,14 +1126,6 @@ class Tour {
                     this.stages.push(stage);
                 };
             });
-            // dodawaj statystyki po wszystaniu ligi
-            // odtwórz fixtures
-            // odtwórz tabelę ligową
-            // dodaj statystykę ostatniego meczy
-
-            //this.stages = stages; // odtwórz
-
-            // czy view jest dobrze wygenerowany
         };
     }
 }
@@ -1183,6 +1240,22 @@ DOM.goToCupViewBtnJQ.on('click', function() {
 DOM.goToLeagueViewBtnJQ.on('click', function() {  
     goToPage(DOM.leagueViewPageJQ);
     show(DOM.addResultBarJQ);               
+});
+
+
+toggleBackupBtns();
+DOM.loadBackupBtnJQ.on('click', function() {
+    tour.loadFromBackup();
+});
+
+DOM.saveBackupBtnJQ.on('click', function() {
+    tour.backup();
+    toggleBackupBtns();
+});
+
+DOM.clearBackupBtnJQ.on('click', function() {
+    localStorage.removeItem('twoj_turniej_backup');
+    toggleBackupBtns();
 });
 
 // PO ZAKOŃCZENIU LIGI, SPRAWDZENIE CZY TRZEBA WYGENEROWAĆ JESZCZE FAZĘ PUCHAROWĄ

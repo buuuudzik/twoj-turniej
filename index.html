@@ -12,10 +12,16 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="backup">
+        <input type="button" class="save-backup" value="Save backup">
+        <input type="button" class="load-backup hidden" value="Load backup">
+        <input type="button" class="clear-backup" value="Clear backup">
+    </div>
+
     <div id="add-result" class="hidden">
         <div class="adding-result"><span class="host"></span><input type="number" min="0" class="host-goals">:<input type="number" class="guest-goals"><span class="guest"></span><input type="button" class="add-result" value="Add result"></div>
-        <input type="button" class="goto-league-view hidden" value="League"></div>
-        <input type="button" class="goto-cup-view hidden" value="Cup"></div>
+        <input type="button" class="goto-league-view hidden" value="League">
+        <input type="button" class="goto-cup-view hidden" value="Cup">
     </div>
 
     <div id="adding-teams" class="page">
