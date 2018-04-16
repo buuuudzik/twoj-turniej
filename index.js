@@ -97,7 +97,19 @@ const ALERTS = {
     TOO_MUCH_TEAMS: {
         en: 'It can be maximum 64 teams in the tour!',
         pl: 'Maksymalnie może być 64 drużyny!'
-    }
+    },
+    DO_YOU_WANT_SAVE_BACKUP: {
+        en: 'Do you really want SAVE backup?',
+        pl: 'Czy na pewno chcesz zapisać bieżacy stan?'
+    },
+    DO_YOU_WANT_LOAD_BACKUP: {
+        en: 'Do you really want LOAD from backup?',
+        pl: 'Czy na pewno chcesz wczytać zapisany stan?'
+    },
+    DO_YOU_WANT_CLEAR_BACKUP: {
+        en: 'Do you really want CLEAR backup?',
+        pl: 'Czy na pewno chcesz usunąć zapisany stan?'
+    },
 }
 
 const INTERFACE = {
@@ -116,7 +128,7 @@ const INTERFACE = {
     TIE: {
         en: 'tie',
         pl: 'dwumecz'
-    }
+    },
 }
 
 const DOM = {
@@ -221,7 +233,7 @@ class Team {
         let goalsScored = this.onLeagueTable.find('.goals-scored');
         goalsScored.text(this.goalsScored);
         let goalsLost = this.onLeagueTable.find('.goals-lost');
-        goalsLost.text(this.goalsScored);
+        goalsLost.text(this.goalsLost);
 
         let lastMatch = this.getLastMatch();
         
@@ -241,6 +253,8 @@ class Team {
         };
     }
     recalcStats() {
+        // WYZERUJ WYNIKI ZAWODKÓW
+        this.clearStats();
         this.matches.forEach((m, i) => {
             let stats = m.getTeamStats(this.name);
             let {points, won, draw, lost, goalsScored, goalsLost} = stats;
@@ -410,6 +424,7 @@ class Match {
     }
     backup() {
         let {host, guest, hostGoals, guestGoals, finished, stage, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, isRevenge, partOfTie} = this;
+        if (penaltiesWinner) penaltiesWinner = penaltiesWinner.name;
         return {
             host: host.name,
             guest: guest.name,
@@ -420,7 +435,7 @@ class Match {
             penalties,
             hostPenaltiesGoals,
             guestPenaltiesGoals,
-            penaltiesWinner: penaltiesWinner.name,
+            penaltiesWinner, // podmiana na imię
             isRevenge,
             partOfTie
         };
@@ -585,7 +600,10 @@ class Round {
         tourEmitter.emit('roundCreated');
         tourEmitter.listen('finishedMatch', (match) => {
             if (this.finished) return;
-            if (this.matches[this.matches.length-1].finished) this.finished = true;
+            if (this.matches[this.matches.length-1].finished) {
+                this.finished = true;
+                tourEmitter.emit('roundFinished');
+            };
         });
     }
     getNextMatch() {
@@ -638,9 +656,19 @@ class League {
 
         tourEmitter.emit('leagueCreated');
         tourEmitter.emit('stageCreated');
-        tourEmitter.listen('finishedMatch', (match) => {
+        tourEmitter.listen('finishedMatch', () => {
+            setTimeout(() => {
+                this.sortLeagueTable();
+                tourEmitter.emit('tableSorted');
+            }, 50);
+        });
+        tourEmitter.listen('roundFinished', () => {
             if (this.finished === true) return;
-            if (this.rounds[this.rounds.length-1].finished) this.finished = true;
+            
+            if (this.rounds[this.rounds.length-1].finished) {
+                this.finished = true;
+                tourEmitter.emit('stageFinished');
+            };
             setTimeout(() => {
                 this.sortLeagueTable();
                 tourEmitter.emit('tableSorted');
@@ -676,14 +704,11 @@ class League {
 
     getNextMatch() {
         let round = this.rounds.find(r => !r.finished);
-        let nextMatch = round.getNextMatch();
-        if (nextMatch) return nextMatch;
-        else return false;
-    }
-    updateAddingResult() {
-        let nextMatch = this.getNextMatch();
-        if (nextMatch) nextMatch.show//
-        else ; // UKRYJ FORMULARZ ADDING MATCH RESULT
+        if (round) {
+            let nextMatch = round.getNextMatch();
+            if (nextMatch) return nextMatch;
+            else return false;
+        } else return false;
     }
     sortLeagueTable() {
         let tbody = DOM.leagueTableJQ.find('tbody');
@@ -728,9 +753,9 @@ class League {
     getQualifiedTeams() {
         let qualifiedTeamNames = [];
         let teamsInTableJQ = DOM.leagueTableJQ.find('tbody > tr').each((i, v) => {
-            if (i < this.teams.length/2) qualifiedTeamNames.push($(v).find('.name').text());
+            let name = $(v).find('.name').text();
+            if (i < this.teams.length/2) qualifiedTeamNames.push(name);
         });
-
         let qualifiedTeams = qualifiedTeamNames.map(name => this.teams.find(team => name === team.name));
 
         if (qualifiedTeams) return qualifiedTeams;
@@ -746,11 +771,9 @@ class League {
             finished
         };
     }
-    updateFromBackup(rounds, finished) {
-        // CLEAR DEFAULT ROUNDS
-        this.rounds.length = 0;
-        DOM.leagueFixturesJQ.find('tbody').empty();
-
+    updateFromBackup(teams, rounds, finished) {
+        this.clearLeague();
+        this.teams = teams;
         this.finished = finished;
         rounds.forEach((r, i) => {
             let {matches, finished} = r;
@@ -773,12 +796,29 @@ class League {
         if (!this.finished) show(DOM.addResultBarJQ);
 
         setTimeout(() => {
-            if (tour.stages.length>1) {
-                show(DOM.goToLeagueViewBtnJQ);
-                show(DOM.goToCupViewBtnJQ);
-            };
+                if (tour.stages.length > 1) {
+                    show(DOM.goToLeagueViewBtnJQ);
+                    show(DOM.goToCupViewBtnJQ);
+                };
+                tour.decorateBestOnView();
         }, 60);
         goToPage(DOM.leagueViewPageJQ);
+    }
+    clearLeague() {
+        this.teams = [];
+        this.rounds = [];
+        DOM.leagueFixturesJQ.find('tbody').empty();
+    }
+    getLastMatch() {
+        let {rounds} = this;
+        let round = rounds.find(r => !r.finished);
+        if (!round) {
+            round = rounds[rounds.length-1];
+            return round.matches[round.matches.length-1];
+        } else {
+            let finished = round.matches.filter(m => m.finished);
+            return finished[finished.length-1];
+        };
     }
 }
 
@@ -795,6 +835,14 @@ class Cup {
         this.generateNextRound();
         tourEmitter.emit('cupCreated');
         tourEmitter.emit('stageCreated');
+        tourEmitter.listen('roundFinished', () => {
+            if (this.finished === true) return;
+            
+            if (this.rounds[this.rounds.length-1].finished) {
+                this.finished = true;
+                tourEmitter.emit('stageFinished');
+            };
+        });
     }
 
     getWinnersToNextStage() {
@@ -816,12 +864,11 @@ class Cup {
         if (teams.length === 0) {
             // AFTER FINAL
             // FIRST CHECK IF PENALTIES WASN'T PLAYED
-            if (this.rounds) {
+            if (this.rounds.length > 0) {
                 let lastMatch = this.rounds[this.rounds.length-1].matches[0];
                 let winner = lastMatch.whoWon();
                 if (winner) console.log(`Zwyciężył ${winner.name}!`);
                 else {
-                    console.log('karne 4'); 
                     lastMatch.playPenalties();
                     winner = lastMatch.whoWon();
                     alert(`${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner.name}!`);
@@ -867,7 +914,17 @@ class Cup {
         else if (matchesInCurrentStage === 1) return `1/1`;
         else return false;
     }
-
+    getLastMatch() {
+        let {rounds} = this;
+        let round = rounds.find(r => !r.finished);
+        if (!round) {
+            round = rounds[rounds.length-1];
+            return round.matches[round.matches.length-1];
+        } else {
+            let finished = round.matches.filter(m => m.finished);
+            return finished[finished.length-1];
+        };
+    }
     getNextMatch() {
         let {rounds} = this;
         let round = rounds.find(r => !r.finished);
@@ -893,11 +950,9 @@ class Cup {
             finished
         };
     }
-    updateFromBackup(rounds, finished) {
-        // CLEAR DEFAULT ROUNDS
-        this.rounds.length = 0;
-        DOM.cupFixturesJQ.find('tbody').empty();
-
+    updateFromBackup(teams, rounds, finished) {
+        this.clearCup();
+        this.teams = teams;
         this.finished = finished;
         rounds.forEach((r, i) => {
             let {matches, finished} = r;
@@ -933,6 +988,11 @@ class Cup {
         }, 60);
         goToPage(DOM.cupViewPageJQ);
     }
+    clearCup() {
+        this.teams = [];
+        this.rounds = [];
+        DOM.cupFixturesJQ.find('tbody').empty();
+    }
 }
 
 
@@ -949,13 +1009,17 @@ class Tour {
         this.stages = [];
         this.finished = false;
         tourEmitter.listen('deletedTeam', (name) => this.removeTeam(name));
-        tourEmitter.listen('finishedMatch', (match) => {
+        tourEmitter.listen('finishedMatch', () => {
+            setTimeout(() => this.updateAddingResultView(), 50);
+        });
+        tourEmitter.listen('stageFinished', (match) => {
             setTimeout(() => {
                 this.updateAddingResultView();
-            
+                
                 if (this.stages[this.stages.length-1].finished) {
-                    if (this.type === 'lc') {
+                    if (this.type === 'lc' && this.stages.length === 1) {
                         // GENERUJ FAZĘ PUCHAROWĄ
+                        this.stages[0].sortLeagueTable();
                         let teams = this.stages[this.stages.length-1].getQualifiedTeams();
                         this.stages.push(new Cup(teams, this.cupRevenge));
                         show(DOM.goToCupViewBtnJQ);
@@ -965,10 +1029,20 @@ class Tour {
                         show(DOM.goToCupViewBtnJQ);
 
                         goToPage(DOM.cupViewPageJQ);
-                    } else {
+                    } else if (this.type === 'l') {
                         this.finished = true;
                         hide(DOM.addingResultJQ);
-                        alert(ALERTS.TOURNAMENT_IS_FINISHED[lang]);
+
+                        this.stages[0].sortLeagueTable();
+                        let winner = DOM.leagueTableJQ.find('tbody > tr:first-child .name').text();
+                        alert(`${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner}!`);
+                    } else if (this.type === 'c' || (this.type === 'lc' && this.stages.length === 2)) {
+                        this.finished = true;
+                        hide(DOM.addingResultJQ);
+
+                        let lastMatch = this.stages[this.stages.length-1].getLastMatch();
+                        let winner = lastMatch.whoWon();
+                        alert(`${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner.name}!`);
                     };
                 };
             }, 50);
@@ -1015,7 +1089,7 @@ class Tour {
             leagueRevengeJQ[0].checked = false;
         } else if (selectedType === 'lc') {
             show(leagueRevengeJQ);
-            if (this.canPlayCup()) show(cupRevengeJQ);
+            if (this.canPlayCup() && this.stages.length>1) show(cupRevengeJQ);
             else hide(cupRevengeJQ);
         };
     }
@@ -1046,7 +1120,11 @@ class Tour {
     addResultToNextMatch(hostGoals, guestGoals) {
         let nextMatch = this.getNextMatch();
         if (nextMatch) nextMatch.addResult(hostGoals, guestGoals);
-        else alert(`${ALERTS.TOURNAMENT_IS_FINISHED[lang]}`); // dodaj nazwę zwycięzcy
+        else {
+            let lastMatch = this.stages[this.stages.length-1].getLastMatch();
+            let winner = lastMatch.whoWon();
+            alert(`${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner.name}!`);
+        };
     }
     updateAddingResultView() {
         let nextMatch = this.getNextMatch();
@@ -1100,10 +1178,18 @@ class Tour {
         if (backup) localStorage.setItem('twoj_turniej_backup', backupJSON);
         else throw new Error(ERRORS.BACKUP_CREATION_FAILED[lang]);
     }
+    clearTour() {
+        tour.stages = [];
+        tour.teams = [];
+        DOM.leagueFixturesJQ.find('tbody').empty();
+        DOM.cupFixturesJQ.find('tbody').empty();
+        DOM.leagueTableJQ.find('tbody').empty();
+    }
     loadFromBackup() {
         let backupJSON = localStorage.getItem('twoj_turniej_backup');
         
         if (backupJSON) {
+            this.clearTour();
             let bTour = JSON.parse(backupJSON);
             let {name, type, leagueRevenge, cupRevenge, finished, teams, stages} = bTour;
             this.name = name;
@@ -1122,10 +1208,11 @@ class Tour {
                 else if (type === 'cup') stage = new Cup(teams, revenges);
 
                 if (stage) {
-                    stage.updateFromBackup(rounds, finished);
+                    stage.updateFromBackup(teams, rounds, finished);
                     this.stages.push(stage);
                 };
             });
+            if (this.getNextMatch()) show(DOM.addingResultJQ);
         };
     }
 }
@@ -1180,7 +1267,7 @@ function addTeamsWhenSpecialCode(code) {
         code = code.slice(generateTeams.length, code.length);
         let type = code[0];
         if (type === 's') {
-            let howMany = parseInt(code.slice(1, code.length));
+            let howMany = parseInt(code.slice(1, code.length)) || 4;
             for (let i=0; i<howMany; i++) {
                 addTeam(teamNames[i][lang]);
             };
@@ -1245,15 +1332,18 @@ DOM.goToLeagueViewBtnJQ.on('click', function() {
 
 toggleBackupBtns();
 DOM.loadBackupBtnJQ.on('click', function() {
+    if (!confirm(ALERTS.DO_YOU_WANT_LOAD_BACKUP[lang])) return;
     tour.loadFromBackup();
 });
 
 DOM.saveBackupBtnJQ.on('click', function() {
+    if (!confirm(ALERTS.DO_YOU_WANT_SAVE_BACKUP[lang])) return;
     tour.backup();
     toggleBackupBtns();
 });
 
 DOM.clearBackupBtnJQ.on('click', function() {
+    if (!confirm(ALERTS.DO_YOU_WANT_CLEAR_BACKUP[lang])) return;
     localStorage.removeItem('twoj_turniej_backup');
     toggleBackupBtns();
 });
