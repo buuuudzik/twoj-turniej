@@ -786,7 +786,7 @@ class League {
     }
     getNumberOfTeamsForCup() {
         let halfTeamsInLeague = this.teams.length/2 - this.teams.length%2;
-        let found = [64,32,16,8,4,2].filter(n => n < halfTeamsInLeague).find(n => halfTeamsInLeague >= n);
+        let found = [64,32,16,8,4,2].filter(n => n <= halfTeamsInLeague).find(n => halfTeamsInLeague >= n);
         if (found) return found;
         else return false;
     }
@@ -946,14 +946,14 @@ class Cup {
                 else {
                     lastMatch.playPenalties();
                     winner = lastMatch.whoWon();
-                    alert(`4 ${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner.name}!`);
+                    alert(`${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner.name}!`);
                 };
             };
             return false;
         } else if (teams.length === 1) {
             // komunikat o wygraniu pucharu
             let [winner] = teams;
-            alert(`5 ${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner.name}!`);
+            alert(`${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner.name}!`);
         };
 
         let matches = [];
@@ -1124,14 +1124,14 @@ class Tour {
 
                         this.stages[0].sortLeagueTable();
                         let winner = DOM.leagueTableJQ.find('tbody > tr:first-child .name').text();
-                        alert(`1 ${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner}!`);
+                        alert(`${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner}!`);
                     } else if (this.type === 'c' || (this.type === 'lc' && this.stages.length === 2)) {
                         this.finished = true;
                         hide(DOM.addResultBarJQ);
 
                         let lastMatch = this.stages[this.stages.length-1].getLastMatch();
                         let winner = lastMatch.whoWon();
-                        alert(`2 ${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner.name}!`);
+                        alert(`${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner.name}!`);
                     };
                 };
             }, 50);
@@ -1226,7 +1226,7 @@ class Tour {
         else {
             let lastMatch = this.stages[this.stages.length-1].getLastMatch();
             let winner = lastMatch.whoWon();
-            alert(`3 ${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner.name}!`);
+            alert(`${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner.name}!`);
         };
     }
     updateAddingResultView() {
@@ -1548,3 +1548,7 @@ DOM.leagueFixturesJQ.find('thead').on('click', function() {
 // Przy bardzo dużej lidze źle sortuje tabelę
 
 // Liga + puchar nie pozkazuje Rewanże w pucharze?
+
+// właściwa kolejność rozgrywania meczy w półfinale
+
+// wyświetlanie nazwy rundy w fixtures
