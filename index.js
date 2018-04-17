@@ -734,29 +734,40 @@ class League {
     }
     sortLeagueTable() {
         let tbody = DOM.leagueTableJQ.find('tbody');
+        let ni = 0;
         tbody.find('tr').sort(function(a, b) {
             // ONLY DESC DIRECTION
+            
+            function returnFromDelta(delta) {
+                if (delta > 0) return +1;
+                else if (delta < 0) return -1;
+                else return 0;
+            };
+
             let pointsDelta = intFromText($('td:nth(2)', b)) - intFromText($('td:nth(2)', a));
-            if (pointsDelta) return pointsDelta > 0;
+            if (pointsDelta) return returnFromDelta(pointsDelta);
 
             let aGoalsScored = intFromText($('td:nth(7)', a));
             let aGoalsLost = intFromText($('td:nth(7)', a));
             let bGoalsScored = intFromText($('td:nth(6)', b));
             let bGoalsLost = intFromText($('td:nth(7)', b));
             let goalDelta = (bGoalsScored - bGoalsLost) - (aGoalsScored - aGoalsLost);
-            if (goalDelta) return goalDelta > 0;
+            if (goalDelta) return returnFromDelta(goalDelta);
 
             let winsDelta = intFromText($('td:nth(3)', b)) - intFromText($('td:nth(3)', a));
-            if (winsDelta) return winsDelta;
+            if (winsDelta) return returnFromDelta(winsDelta);
 
             let drawDelta = intFromText($('td:nth(4)', b)) - intFromText($('td:nth(4)', a));
-            if (drawDelta) return drawDelta > 0;
+            if (drawDelta) return returnFromDelta(drawDelta);
 
             let moreGoalsScored = bGoalsScored - aGoalsScored;
-            return moreGoalsScored > 0;
+            if (moreGoalsScored) return returnFromDelta(moreGoalsScored);
 
-            let lostDelta = intFromText($('td:nth(5)', a)) - intFromText($('td:nth(5)', b));
-            if (lostDelta) return lostDelta > 0;
+            let lessGoalslost = -bGoalsLost - (-aGoalsLost);
+            if (lessGoalslost) return returnFromDelta(lessGoalslost);
+
+            let lostDelta = -intFromText($('td:nth(5)', b)) - (-intFromText($('td:nth(5)', a)));
+            if (lostDelta) return returnFromDelta(lostDelta);
         }).appendTo(tbody);
 
         // UPDATE IDS
@@ -828,6 +839,8 @@ class League {
                 if (tour.stages.length > 1) {
                     show(DOM.goToLeagueViewBtnJQ);
                     show(DOM.goToCupViewBtnJQ);
+                    addClass.call(DOM.goToCupViewBtnJQ, 'active');
+                    removeClass.call(DOM.goToLeagueViewBtnJQ, 'active');
                 };
                 tour.decorateBestOnView();
         }, 60);
@@ -1030,6 +1043,8 @@ class Cup {
             if (tour.stages.length>1) {
                 show(DOM.goToLeagueViewBtnJQ);
                 show(DOM.goToCupViewBtnJQ);
+                addClass.call(DOM.goToCupViewBtnJQ, 'active');
+                removeClass.call(DOM.goToLeagueViewBtnJQ, 'active');
             };
         }, 60);
         goToPage(DOM.cupViewPageJQ);
@@ -1072,6 +1087,8 @@ class Tour {
                         let teams = this.stages[this.stages.length-1].getQualifiedTeams();
                         this.stages.push(new Cup(teams, this.cupRevenge));
                         show(DOM.goToCupViewBtnJQ);
+                        addClass.call(DOM.goToCupViewBtnJQ, 'active');
+                        removeClass.call(DOM.goToLeagueViewBtnJQ, 'active');
 
                         // SHOW OTHER STAGE VIEW
                         show(DOM.goToLeagueViewBtnJQ);
@@ -1387,12 +1404,14 @@ $(document).on('keydown', function(event) {
 
 DOM.goToCupViewBtnJQ.on('click', function() {  
     goToPage(DOM.cupViewPageJQ);
-    show(DOM.addResultBarJQ);               
+    addClass.call(DOM.goToCupViewBtnJQ, 'active');
+    removeClass.call(DOM.goToLeagueViewBtnJQ, 'active');              
 });
 
 DOM.goToLeagueViewBtnJQ.on('click', function() {  
     goToPage(DOM.leagueViewPageJQ);
-    show(DOM.addResultBarJQ);               
+    addClass.call(DOM.goToLeagueViewBtnJQ, 'active');            
+    removeClass.call(DOM.goToCupViewBtnJQ, 'active');            
 });
 
 
