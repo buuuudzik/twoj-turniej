@@ -2,6 +2,7 @@ body {
     margin: 0;
     padding: 0;
     font-family: 'Varela Round', sans-serif;
+    font-size: 30px;
 }
 
 .hidden {
@@ -34,6 +35,7 @@ body {
     filter: drop-shadow(1px 1px 1px #000000);
     font-family: 'Varela Round', sans-serif;
     text-shadow: 1px 1px 1px grey;
+    vertical-align: middle;
 }
 .btn-active {
     filter: drop-shadow(2px 2px 2px #ffff00);
@@ -53,7 +55,11 @@ input[type="text"], input[type="number"], select {
     font-size: 20px;
 }
 
-#adding-teams, #add-result {
+.league-revenge, .cup-revenge {
+    margin-top: 20px;
+}
+
+#adding-teams, #add-result, #tour-settings {
     padding: 10px;
     border-radius: 5px;
     margin: 10px;
@@ -86,7 +92,6 @@ input[type="text"], input[type="number"], select {
 .table {
     display: inline-flex;
     margin-top: 20px;
-    margin-left: 50px;
     filter: drop-shadow(1px 1px 1px black);
 }
 
@@ -102,6 +107,14 @@ th, td  {
     background-color: rgb(226, 232, 238);
 }
 
+.league-fixtures {
+    margin-right: 25px;
+}
+
+.league-table {
+    margin-left: 25px;
+}
+
 table, th, td {
     border-spacing: 5px;
  }
@@ -112,3 +125,28 @@ table, th, td {
  thead {
      background-color: #b8c9f5;
  }
+
+ .delete-team > div {
+     background: red;
+     width: 50%;
+     text-align: center;
+     border-radius: 5px;
+     margin-left: 25%;
+     cursor: pointer;
+ }
+
+ .adding-result > .host {
+     margin-right: 5px; 
+ }
+
+ .adding-result > .guest {
+    margin-left: 5px; 
+}
+
+.active {
+    color: yellow;
+}
+
+.fast-goals-module {
+    margin-left: 30px;
+}

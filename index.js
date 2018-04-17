@@ -170,6 +170,9 @@ const DOM = {
     saveBackupBtnJQ: $('.save-backup'),
     loadBackupBtnJQ: $('.load-backup'),
     clearBackupBtnJQ: $('.clear-backup'),
+    selectHostInFastGoalsBtnJQ: $('.host-fast-goals'),
+    selectGuestInFastGoalsBtnJQ: $('.guest-fast-goals'),
+    fastGoalsBtnJQ: $('.fast-goals'),
 }
 
 // GLOBAL EMITTER OBJECTS FOR CONTROLLING OF DATA FLOW IN APP
@@ -203,7 +206,7 @@ class Team {
         this.goalsLost = 0;
         this.matches = [];
 
-        this.onTeamListJQ = $(`<tr><td>${this.name}</td><td class="delete-team">&times;</td></tr>`).appendTo(DOM.addedTeamsJQ);
+        this.onTeamListJQ = $(`<tr><td>${this.name}</td><td class="delete-team"><div>&times;</div></td></tr>`).appendTo(DOM.addedTeamsJQ);
         this.onTeamListJQ.find('.delete-team').on('click', () => {
             this.onTeamListJQ.remove();
             tourEmitter.emit('deletedTeam', this.name);
@@ -1031,14 +1034,14 @@ class Tour {
                         goToPage(DOM.cupViewPageJQ);
                     } else if (this.type === 'l') {
                         this.finished = true;
-                        hide(DOM.addingResultJQ);
+                        hide(DOM.addResultBarJQ);
 
                         this.stages[0].sortLeagueTable();
                         let winner = DOM.leagueTableJQ.find('tbody > tr:first-child .name').text();
                         alert(`${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner}!`);
                     } else if (this.type === 'c' || (this.type === 'lc' && this.stages.length === 2)) {
                         this.finished = true;
-                        hide(DOM.addingResultJQ);
+                        hide(DOM.addResultBarJQ);
 
                         let lastMatch = this.stages[this.stages.length-1].getLastMatch();
                         let winner = lastMatch.whoWon();
@@ -1212,7 +1215,7 @@ class Tour {
                     this.stages.push(stage);
                 };
             });
-            if (this.getNextMatch()) show(DOM.addingResultJQ);
+            if (this.getNextMatch()) show(DOM.addResultBarJQ);
         };
     }
 }
@@ -1348,6 +1351,25 @@ DOM.clearBackupBtnJQ.on('click', function() {
     toggleBackupBtns();
 });
 
+function toggleFastGoalsTeam() {
+    DOM.selectHostInFastGoalsBtnJQ.toggleClass('active');
+    DOM.selectGuestInFastGoalsBtnJQ.toggleClass('active');
+};
+
+DOM.selectHostInFastGoalsBtnJQ.on('click', toggleFastGoalsTeam);
+DOM.selectGuestInFastGoalsBtnJQ.on('click', toggleFastGoalsTeam);
+
+
+DOM.fastGoalsBtnJQ.on('click', function() {
+    let hostIsActive = DOM.selectHostInFastGoalsBtnJQ.hasClass('active');
+    let guestIsActive = DOM.selectGuestInFastGoalsBtnJQ.hasClass('active');
+    let goals = $(this).val();
+
+    if (hostIsActive) DOM.addingResultHostGoalsJQ.val(goals);
+    else if (guestIsActive) DOM.addingResultGuestGoalsJQ.val(goals);
+    console.log(goals);
+});
+
 // PO ZAKOŃCZENIU LIGI, SPRAWDZENIE CZY TRZEBA WYGENEROWAĆ JESZCZE FAZĘ PUCHAROWĄ
 
 // INNE POMYSŁY
@@ -1400,3 +1422,7 @@ DOM.clearBackupBtnJQ.on('click', function() {
 
 // Popraw sortowanie, ponieważ nie działa poprawnie w lidze, sprawdzone na ##gs12
 // TRZEBA PO PROSTU NA POCZĄTKU SORTOWAĆ WSZYSTKIE DRUŻYNY
+
+// Przy bardzo dużej lidze źle sortuje tabelę
+
+// Liga + puchar nie pozkazuje Rewanże w pucharze?
