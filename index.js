@@ -563,7 +563,6 @@ class Tie {
         let [m1, m2] = this.matches;
         let t1Penalties = parseInt(prompt(`Podaj gole dla ${m2.host.name}:`, 5)); // ZMIEŃ NA LEPSZĄ WERSJĘ
         let t2Penalties = parseInt(prompt(`Podaj gole dla ${m2.guest.name}:`, 5)); // ZMIEŃ NA LEPSZĄ WERSJĘ
-        console.log('to', this.matches)
         m2.hostPenaltiesGoals = t1Penalties;
         m2.guestPenaltiesGoals = t2Penalties;
 
@@ -594,19 +593,17 @@ class Tie {
         };
     }
     updateFromBackup(finished, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, matches) {
-        matches.map(m => {
+        this.matches = matches.map((m, i) => {
             let {host, guest, stage, isRevenge, hostGoals, guestGoals, finished, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner} = m;
             let newMatch = new Match(tour.getTeam(host), tour.getTeam(guest), stage, isRevenge);
             newMatch.updateFromBackup(hostGoals, guestGoals, finished, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, true);
+            return newMatch;
         });
-        this.hostGoals = hostGoals;
-        this.guestGoals = guestGoals;
         this.finished = finished;
         this.penalties = penalties;
         this.hostPenaltiesGoals = hostPenaltiesGoals;
         this.guestPenaltiesGoals = guestPenaltiesGoals;
         this.penaltiesWinner = penaltiesWinner;
-        this.partOfTie = partOfTie;
     }
 }
 
@@ -898,10 +895,25 @@ class Cup {
             if (this.finished === true) return;
             
             if (this.rounds[this.rounds.length-1].finished) {
-                this.finished = true;
-                tourEmitter.emit('stageFinished');
+                if (this.rounds.length === this.howMuchRounds()) {
+                    this.finished = true;
+                    tourEmitter.emit('stageFinished');
+                } else {
+                    // Wyzwól sprawdzenie nowego meczu
+                };
             };
         });
+    }
+
+    howMuchRounds() {
+        let teamsLength = this.teams.length;
+        let numberOfRounds = 0;
+        let t = teamsLength;
+        while(t>1) {
+            numberOfRounds++;
+            t = t/2;
+        };
+        return numberOfRounds;
     }
 
     getWinnersToNextStage() {
@@ -930,14 +942,14 @@ class Cup {
                 else {
                     lastMatch.playPenalties();
                     winner = lastMatch.whoWon();
-                    alert(`${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner.name}!`);
+                    alert(`4 ${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner.name}!`);
                 };
             };
             return false;
         } else if (teams.length === 1) {
             // komunikat o wygraniu pucharu
             let [winner] = teams;
-            alert(`${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner.name}!`);
+            alert(`5 ${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner.name}!`);
         };
 
         let matches = [];
@@ -949,7 +961,7 @@ class Cup {
     
                 // DODAJ WYCZYSZCZENIE STATYSTYK DRUŻYN PRZED NOWĄ RUNDĄ
                 teams.forEach(t => t.clearStats());
-    
+                
                 if (this.revenges && teams.length > 2) matches.push(new Tie(new Match(team1, team2, nextStage), new Match(team2, team1, nextStage), nextStage));
                 else if (this.revenges && teams.length === 2) matches.push(new Match(team1, team2, nextStage));
                 else if (!this.revenges) matches.push(new Match(team1, team2, nextStage));
@@ -986,8 +998,8 @@ class Cup {
     }
     getNextMatch() {
         let {rounds} = this;
+        
         let round = rounds.find(r => !r.finished);
-
         if (round) return round.getNextMatch();
         else {
             this.generateNextRound();
@@ -1017,13 +1029,20 @@ class Cup {
             let {matches, finished} = r;
             let roundNumber = i + 1;
 
-            if (matches.matches) {
+            if (matches[0].matches) {
                 // generate Tie but not in final
-                let ties = matches.map(t => new Tie(tour.getTeam(t.host), tour.getTeam(t.guest), t.stage));
+                let ties = matches.map(t => {
+                    let [m1, m2] = t.matches;
+                    // PRZEKSZTAŁĆ M1 I M2 W MATCH
+                    return new Tie(m1, m2, t.stage);
+                });
                 ties.forEach(t => {
                     let {finished, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, matches} = t;
                     t.updateFromBackup(finished, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, matches);
                 });
+                let round = new Round(ties, `cup-${roundNumber}`);
+                round.finished = finished;
+                this.rounds.push(round);
             } else {
                 matches = matches.map(m => new Match(tour.getTeam(m.host), tour.getTeam(m.guest), m.stage, m.isRevenge));
                 matches.forEach(m => {
@@ -1101,14 +1120,14 @@ class Tour {
 
                         this.stages[0].sortLeagueTable();
                         let winner = DOM.leagueTableJQ.find('tbody > tr:first-child .name').text();
-                        alert(`${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner}!`);
+                        alert(`1 ${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner}!`);
                     } else if (this.type === 'c' || (this.type === 'lc' && this.stages.length === 2)) {
                         this.finished = true;
                         hide(DOM.addResultBarJQ);
 
                         let lastMatch = this.stages[this.stages.length-1].getLastMatch();
                         let winner = lastMatch.whoWon();
-                        alert(`${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner.name}!`);
+                        alert(`2 ${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner.name}!`);
                     };
                 };
             }, 50);
@@ -1133,6 +1152,7 @@ class Tour {
     removeTeam(name) {
         this.teams.splice(this.teams.findIndex(t => t.name === name), 1);
         if (this.teams.length < 2) hide(DOM.readyTeamsBtnJQ);
+        this.showOnlyPossibleTypes();
         this.toggleTeamsTable(); 
     }
     toggleTeamsTable() {
@@ -1202,7 +1222,7 @@ class Tour {
         else {
             let lastMatch = this.stages[this.stages.length-1].getLastMatch();
             let winner = lastMatch.whoWon();
-            alert(`${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner.name}!`);
+            alert(`3 ${ALERTS.TOURNAMENT_IS_FINISHED[lang]} ${winner.name}!`);
         };
     }
     updateAddingResultView() {
@@ -1294,8 +1314,8 @@ class Tour {
                     this.stages.push(stage);
                 };
             });
-            if (this.getNextMatch()) show(DOM.addResultBarJQ);
-            this.updateLogo();
+            // if (this.getNextMatch()) show(DOM.addResultBarJQ);
+            // this.updateLogo();
         };
     }
 }
