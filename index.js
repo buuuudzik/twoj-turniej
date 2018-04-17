@@ -39,6 +39,14 @@ function toggleBackupBtns() {
     };
 };
 
+// MUST BE CALL ON OBJECT by call/apply/bind methods
+function addClass(className) {
+    if (!this.hasClass(className)) this.addClass(className);
+};
+function removeClass(className) {
+    if (this.hasClass(className)) this.removeClass(className);
+};
+
 // CHOOSE A LANGUAGE
 let lang = 'pl'; // pl, en
 
@@ -1315,6 +1323,7 @@ function addResult() {
     if (isNaN(hostGoals) || isNaN(guestGoals)) alert(ALERTS.NAN_IN_ADDING_RESULT[lang]);
     else tour.addResultToNextMatch(hostGoals, guestGoals);
     DOM.addingResultHostGoalsJQ.focus();
+    fastGoalsForHost();
 };
 
 DOM.addResultBtnJQ.on('click', addResult);
@@ -1351,22 +1360,28 @@ DOM.clearBackupBtnJQ.on('click', function() {
     toggleBackupBtns();
 });
 
-function toggleFastGoalsTeam() {
-    DOM.selectHostInFastGoalsBtnJQ.toggleClass('active');
-    DOM.selectGuestInFastGoalsBtnJQ.toggleClass('active');
+
+function fastGoalsForHost() {
+    addClass.call(DOM.selectHostInFastGoalsBtnJQ, 'active');
+    removeClass.call(DOM.selectGuestInFastGoalsBtnJQ, 'active'); // może [0]
+};
+function fastGoalsForGuest() {
+    addClass.call(DOM.selectGuestInFastGoalsBtnJQ, 'active'); // może [0]
+    removeClass.call(DOM.selectHostInFastGoalsBtnJQ, 'active');
 };
 
-DOM.selectHostInFastGoalsBtnJQ.on('click', toggleFastGoalsTeam);
-DOM.selectGuestInFastGoalsBtnJQ.on('click', toggleFastGoalsTeam);
-
+DOM.selectHostInFastGoalsBtnJQ.on('click', fastGoalsForHost);
+DOM.selectGuestInFastGoalsBtnJQ.on('click', fastGoalsForGuest);
 
 DOM.fastGoalsBtnJQ.on('click', function() {
     let hostIsActive = DOM.selectHostInFastGoalsBtnJQ.hasClass('active');
     let guestIsActive = DOM.selectGuestInFastGoalsBtnJQ.hasClass('active');
     let goals = $(this).val();
 
-    if (hostIsActive) DOM.addingResultHostGoalsJQ.val(goals);
-    else if (guestIsActive) DOM.addingResultGuestGoalsJQ.val(goals);
+    if (hostIsActive) {
+        DOM.addingResultHostGoalsJQ.val(goals);
+        fastGoalsForGuest();
+    } else if (guestIsActive) DOM.addingResultGuestGoalsJQ.val(goals);
     console.log(goals);
 });
 
