@@ -75,7 +75,7 @@ input[type="text"], input[type="number"], select {
     font-size: 20px;
 }
 
-.added-teams, .league-revenge, .cup-revenge {
+.added-teams, .league-revenge, .cup-revenge, .add-teams-tip {
     font-size: 20px;
 }
 
@@ -89,10 +89,6 @@ input[type="text"], input[type="number"], select {
     margin: 10px;
     background-color: rgb(168, 196, 219);
     filter: drop-shadow(1px 1px 1px black);
-}
-
-#add-result {
-    display: inline-block;
 }
 
 .host-goals, .guest-goals {
@@ -187,4 +183,8 @@ table, th, td {
 
 .hiding-something {
     color: blue;
+}
+
+.add-teams-tip {
+    margin-top: 20px;
 }

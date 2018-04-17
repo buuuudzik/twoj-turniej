@@ -83,8 +83,8 @@ const ERRORS = {
 
 const ALERTS = {
     LACK_OF_NAME: {
-        en: 'You must type a name',
-        pl: 'Musisz podać imię'
+        en: 'You must type a team name',
+        pl: 'Musisz podać nazwę drużyny'
     },
     MAX_NUMBER_OF_TEAMS: {
         en: 'You cannot add more than 64 teams!',
@@ -118,6 +118,10 @@ const ALERTS = {
         en: 'Do you really want CLEAR backup?',
         pl: 'Czy na pewno chcesz usunąć zapisany stan?'
     },
+    SOME_TEAM_HAS_SUCH_NAME: {
+        en: 'There is already a team with such name!',
+        pl: 'Już jest drużyna o tej nazwie!'
+    }
 }
 
 const INTERFACE = {
@@ -151,6 +155,8 @@ const DOM = {
     addResultBarJQ: $('#add-result'),
     newTeamJQ: $('.team-name'),
     addTeamBtnJQ: $('.add-team'),
+    teamsInTableTipJQ: $('.add-teams-tip'),
+    addedTeamsTableJQ: $('.added-teams-table'),
     addedTeamsJQ: $('.added-teams'),
     readyTeamsBtnJQ: $('.ready-teams'),
     tourNameJQ: $('.tour-name'),
@@ -766,14 +772,21 @@ class League {
         if (bestTeams) return bestTeams;
         else return false;
     }
+    getNumberOfTeamsForCup() {
+        let halfTeamsInLeague = this.teams.length/2 - this.teams.length%2;
+        let found = [64,32,16,8,4,2].filter(n => n < halfTeamsInLeague).find(n => halfTeamsInLeague >= n);
+        if (found) return found;
+        else return false;
+    }
     getQualifiedTeams() {
         let qualifiedTeamNames = [];
+        let numberOfTeamsForCup = this.getNumberOfTeamsForCup();
+        
         let teamsInTableJQ = DOM.leagueTableJQ.find('tbody > tr').each((i, v) => {
             let name = $(v).find('.name').text();
-            if (i < this.teams.length/2) qualifiedTeamNames.push(name);
+            if (i < numberOfTeamsForCup) qualifiedTeamNames.push(name);
         });
         let qualifiedTeams = qualifiedTeamNames.map(name => this.teams.find(team => name === team.name));
-
         if (qualifiedTeams) return qualifiedTeams;
         else return false;
     }
@@ -841,7 +854,7 @@ class League {
             let resultCell = $(this);
             let numberOfVisibleRows = $('.league-fixtures tbody tr:visible').length;
             if (resultCell.text() && numberOfVisibleRows > 8) {
-                resultCell.parent().hide();
+                resultCell.parent().fadeOut(300);
                 addClass.call(DOM.leagueFixturesJQ.find('thead'), 'hiding-something');
             };
         });
@@ -1093,14 +1106,26 @@ class Tour {
     }
     addTeam(newTeam) {
         if (!newTeam) return alert(ALERTS.LACK_OF_NAME[lang]);
+        if (this.teams.find(t => t.name === newTeam)) return alert(ALERTS.SOME_TEAM_HAS_SUCH_NAME[lang]);
         if (this.teams.length >= 64) return alert(ALERTS.MAX_NUMBER_OF_TEAMS);
         this.teams.push(new Team(newTeam));
         if (this.teams.length >= 2) show(DOM.readyTeamsBtnJQ);
-        this.showOnlyPossibleTypes();   
+        this.showOnlyPossibleTypes();
+        this.toggleTeamsTable();
     }
     removeTeam(name) {
         this.teams.splice(this.teams.findIndex(t => t.name === name), 1);
         if (this.teams.length < 2) hide(DOM.readyTeamsBtnJQ);
+        this.toggleTeamsTable(); 
+    }
+    toggleTeamsTable() {
+        if (this.teams.length === 0) {
+            hide(DOM.addedTeamsTableJQ);
+            show(DOM.teamsInTableTipJQ);
+        } else {
+            show(DOM.addedTeamsTableJQ);
+            hide(DOM.teamsInTableTipJQ);
+        };
     }
     canPlayCup() { // ADD CHECKING FOR LEAGUE+CUP BECAUSE AFTER LEAGUE THE NUMBER OF TEAMS CAN BE TOO SMALL!!!
         let numberOfTeams = this.teams.length;
@@ -1260,7 +1285,6 @@ class Tour {
 
 const tourEmitter = new TourEmitter();
 const tour = new Tour();
-
 
 function addTeam(name) {
     // JEŚLI JUŻ JEST 64 DRUŻYNY, NIE MOŻNA DODAĆ WIĘCEJ NIŻ 64 DRUŻYNY

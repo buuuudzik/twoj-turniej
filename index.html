@@ -16,7 +16,7 @@
 <body>
     <div id="backup">
         <span id="logo">Twój turniej!</span>
-        <input type="button" class="auto-save-backup btn btn-success active" value="Autozapis">
+        <input type="button" class="auto-save-backup btn btn-success" value="Autozapis">
         <input type="button" class="save-backup btn btn-success" value="Zapisz">
         <input type="button" class="load-backup btn btn-alert hidden" value="Wczytaj">
         <input type="button" class="clear-backup btn btn-danger" value="Wyczyść">
@@ -43,7 +43,7 @@
 
     <div id="adding-teams" class="page">
         <input type="text" min="3" class="team-name" placeholder="np.Giganci"></input><input type="button" class="add-team btn" value="Dodaj"><input type="button" class="ready-teams btn hidden" value="Gotowe?"><br>
-        <div class="table">
+        <div class="added-teams-table table hidden">
             <table class="added-teams">
                 <thead>
                     <tr><th>Nazwa</th><th>Usuń</th></tr>
@@ -51,6 +51,7 @@
                 <tbody></tbody>
             </table>
         </div>
+        <div class="add-teams-tip">Brak drużyn</div>
     </div>
 
     <div id="tour-settings" class="page hidden">
