@@ -425,7 +425,7 @@ class Match {
     }
     playPenalties() {
         // PRZEPROWADŹ KARNE!!!
-        alert(ALERTS.PENALTIES_START[lang]);
+        alert(`${ALERTS.PENALTIES_START[lang]}`);
         let {host, guest} = this;
         this.hostPenaltiesGoals = parseInt(prompt(`Podaj gole dla ${host.name}:`, 5)); // ZMIEŃ NA LEPSZĄ WERSJĘ
         this.guestPenaltiesGoals = parseInt(prompt(`Podaj gole dla ${guest.name}:`, 5)); // ZMIEŃ NA LEPSZĄ WERSJĘ
@@ -487,7 +487,7 @@ class Tie {
 
         tourEmitter.listen('finishedMatch', (match) => {
             if (this.finished) return;
-            console.log(this.matches[this.matches.length-1].finished, this.matches[this.matches.length-1])
+            
             if (this.matches[this.matches.length-1].finished) {
                 if (this.isDraw() && this.penalties && !this.penaltiesWinner) {console.log('karne 1'); this.playPenalties();};
                 this.finished = true;
@@ -495,7 +495,6 @@ class Tie {
         });
     }
     isDraw() {
-        console.log('tu1', this.matches);
         if (this.matches.every(v => v.finished)) {
             // licz bramki u siebie i na wyjeździe
             let [m1, m2] = this.matches;
@@ -522,19 +521,25 @@ class Tie {
         if (this.matches.every(v => v.finished)) {
             // licz bramki u siebie i na wyjeździe
             let [m1, m2] = this.matches;
-            let teams = [{name: m2.host.name, goalsScored: 0}, {name: m2.guest.name, goalsScored: 0}];
+            let teams = [{name: m2.host.name, goalsScored: 0, goalsScoredWithWeight: 0}, {name: m2.guest.name, goalsScored: 0, goalsScoredWithWeight: 0}];
 
             for (let m of this.matches) {
                 let host = teams.find(t => t.name === m.host.name);
                 let guest = teams.find(t => t.name === m.guest.name);
                 host.goalsScored += m.hostGoals;
-                guest.goalsScored += 2*(m.guestGoals);
+                host.goalsScoredWithWeight += m.hostGoals;
+                guest.goalsScored += m.guestGoals;
+                guest.goalsScoredWithWeight += 2*(m.guestGoals);
             };
             
             let [t1, t2] = teams;
             if (t1.goalsScored > t2.goalsScored) return m2.host;
             else if (t1.goalsScored < t2.goalsScored) return m2.guest;
-            else return this.penaltiesWinner;
+            else {
+                if (t1.goalsScoredWithWeight > t2.goalsScoredWithWeight) return m2.host;
+                else if (t1.goalsScoredWithWeight < t2.goalsScoredWithWeight) return m2.guest;
+                else return this.penaltiesWinner;
+            };
         } else return false;
     }
     getNextMatch() {
@@ -559,7 +564,7 @@ class Tie {
     }
     playPenalties() {
         // PRZEPROWADŹ KARNE!!!
-        alert(ALERTS.PENALTIES_START[lang]);
+        alert(`${ALERTS.PENALTIES_START[lang]}`);
         let [m1, m2] = this.matches;
         let t1Penalties = parseInt(prompt(`Podaj gole dla ${m2.host.name}:`, 5)); // ZMIEŃ NA LEPSZĄ WERSJĘ
         let t2Penalties = parseInt(prompt(`Podaj gole dla ${m2.guest.name}:`, 5)); // ZMIEŃ NA LEPSZĄ WERSJĘ
@@ -596,7 +601,7 @@ class Tie {
         this.matches = matches.map((m, i) => {
             let {host, guest, stage, isRevenge, hostGoals, guestGoals, finished, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner} = m;
             let newMatch = new Match(tour.getTeam(host), tour.getTeam(guest), stage, isRevenge);
-            newMatch.updateFromBackup(hostGoals, guestGoals, finished, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, true);
+            newMatch.updateFromBackup(hostGoals, guestGoals, finished, stage, penalties, hostPenaltiesGoals, guestPenaltiesGoals, penaltiesWinner, true);
             return newMatch;
         });
         this.finished = finished;
@@ -645,7 +650,6 @@ class Round {
 
         if (!winners) return console.log('There is no winners!'); // ZMIEŃ TO
         winners.forEach(w => {
-            console.log(w);
             w.clearStats();
         });
         return winners;
