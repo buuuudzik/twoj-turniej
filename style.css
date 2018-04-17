@@ -193,3 +193,7 @@ table, th, td {
     margin-top: 15px;
     margin-left: 20px;
 }
+
+.ad {
+    display: inline-block;
+}
