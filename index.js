@@ -176,11 +176,14 @@ const DOM = {
     goToCupViewBtnJQ: $('.goto-cup-view'),
     goToLeagueViewBtnJQ: $('.goto-league-view'),
     saveBackupBtnJQ: $('.save-backup'),
+    autosaveBackupBtnJQ: $('.auto-save-backup'),
     loadBackupBtnJQ: $('.load-backup'),
     clearBackupBtnJQ: $('.clear-backup'),
     selectHostInFastGoalsBtnJQ: $('.host-fast-goals'),
     selectGuestInFastGoalsBtnJQ: $('.guest-fast-goals'),
     fastGoalsBtnJQ: $('.fast-goals'),
+    logoJQ: $('#logo'),
+    resultsInFixturesJQ: $('.league-fixtures .result'),
 }
 
 // GLOBAL EMITTER OBJECTS FOR CONTROLLING OF DATA FLOW IN APP
@@ -671,6 +674,7 @@ class League {
             setTimeout(() => {
                 this.sortLeagueTable();
                 tourEmitter.emit('tableSorted');
+                if ($('.league-fixtures .result').length > 10) this.hideFinishedMatches();
             }, 50);
         });
         tourEmitter.listen('roundFinished', () => {
@@ -678,6 +682,7 @@ class League {
             
             if (this.rounds[this.rounds.length-1].finished) {
                 this.finished = true;
+                this.showAllMatches();
                 tourEmitter.emit('stageFinished');
             };
             setTimeout(() => {
@@ -830,6 +835,23 @@ class League {
             let finished = round.matches.filter(m => m.finished);
             return finished[finished.length-1];
         };
+    }
+    hideFinishedMatches() {
+        $('.league-fixtures .result').each(function(array) {
+            let resultCell = $(this);
+            let numberOfVisibleRows = $('.league-fixtures tbody tr:visible').length;
+            if (resultCell.text() && numberOfVisibleRows > 8) {
+                resultCell.parent().hide();
+                addClass.call(DOM.leagueFixturesJQ.find('thead'), 'hiding-something');
+            };
+        });
+    }
+    showAllMatches() {
+        $('.league-fixtures .result').each(function() {
+            let resultCell = $(this);
+            resultCell.parent().show();
+            removeClass.call(DOM.leagueFixturesJQ.find('thead'), 'hiding-something');
+        });
     }
 }
 
@@ -1021,7 +1043,10 @@ class Tour {
         this.finished = false;
         tourEmitter.listen('deletedTeam', (name) => this.removeTeam(name));
         tourEmitter.listen('finishedMatch', () => {
-            setTimeout(() => this.updateAddingResultView(), 50);
+            setTimeout(() => {
+                this.updateAddingResultView();
+                if (DOM.autosaveBackupBtnJQ.hasClass('active')) this.backup();
+            }, 50);
         });
         tourEmitter.listen('stageFinished', (match) => {
             setTimeout(() => {
@@ -1100,7 +1125,7 @@ class Tour {
             leagueRevengeJQ[0].checked = false;
         } else if (selectedType === 'lc') {
             show(leagueRevengeJQ);
-            if (this.canPlayCup() && this.stages.length>1) show(cupRevengeJQ);
+            if (this.canPlayCup()) show(cupRevengeJQ);
             else hide(cupRevengeJQ);
         };
     }
@@ -1118,6 +1143,7 @@ class Tour {
             case 'lc': goToPage(DOM.leagueViewPageJQ); break;
         };
         this.updateAddingResultView();
+        this.updateLogo();
     }
     getNextMatch() {
         let stage = this.stages.find(stage => {
@@ -1170,6 +1196,9 @@ class Tour {
             };
         };
 
+    }
+    updateLogo() {
+        DOM.logoJQ.text(this.name);
     }
     getTeam(name) {
         return this.teams.find(t => t.name === name);
@@ -1224,6 +1253,7 @@ class Tour {
                 };
             });
             if (this.getNextMatch()) show(DOM.addResultBarJQ);
+            this.updateLogo();
         };
     }
 }
@@ -1362,28 +1392,38 @@ DOM.clearBackupBtnJQ.on('click', function() {
 
 
 function fastGoalsForHost() {
-    addClass.call(DOM.selectHostInFastGoalsBtnJQ, 'active');
-    removeClass.call(DOM.selectGuestInFastGoalsBtnJQ, 'active'); // może [0]
+    addClass.call(DOM.addingResultHostJQ, 'active');
+    removeClass.call(DOM.addingResultGuestJQ, 'active');
 };
 function fastGoalsForGuest() {
-    addClass.call(DOM.selectGuestInFastGoalsBtnJQ, 'active'); // może [0]
-    removeClass.call(DOM.selectHostInFastGoalsBtnJQ, 'active');
+    addClass.call(DOM.addingResultGuestJQ, 'active');
+    removeClass.call(DOM.addingResultHostJQ, 'active');
 };
 
-DOM.selectHostInFastGoalsBtnJQ.on('click', fastGoalsForHost);
-DOM.selectGuestInFastGoalsBtnJQ.on('click', fastGoalsForGuest);
+DOM.addingResultHostJQ.on('click', fastGoalsForHost);
+DOM.addingResultGuestJQ.on('click', fastGoalsForGuest);
 
 DOM.fastGoalsBtnJQ.on('click', function() {
-    let hostIsActive = DOM.selectHostInFastGoalsBtnJQ.hasClass('active');
-    let guestIsActive = DOM.selectGuestInFastGoalsBtnJQ.hasClass('active');
+    let hostIsActive = DOM.addingResultHostJQ.hasClass('active');
+    let guestIsActive = DOM.addingResultGuestJQ.hasClass('active');
     let goals = $(this).val();
 
     if (hostIsActive) {
         DOM.addingResultHostGoalsJQ.val(goals);
         fastGoalsForGuest();
     } else if (guestIsActive) DOM.addingResultGuestGoalsJQ.val(goals);
-    console.log(goals);
 });
+
+DOM.autosaveBackupBtnJQ.on('click', function() {
+    $(this).toggleClass('active');
+});
+
+DOM.leagueFixturesJQ.find('thead').on('click', function() {
+    let thead = $(this);
+    if (thead.hasClass('hiding-something')) tour.stages[0].showAllMatches();
+    else tour.stages[0].hideFinishedMatches();
+});
+
 
 // PO ZAKOŃCZENIU LIGI, SPRAWDZENIE CZY TRZEBA WYGENEROWAĆ JESZCZE FAZĘ PUCHAROWĄ
 

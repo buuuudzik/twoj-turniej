@@ -15,38 +15,38 @@
 </head>
 <body>
     <div id="backup">
-        <input type="button" class="save-backup btn" value="Save">
-        <input type="button" class="load-backup btn hidden" value="Load">
-        <input type="button" class="clear-backup btn" value="Clear">
+        <span id="logo">Twój turniej!</span>
+        <input type="button" class="auto-save-backup btn btn-success active" value="Autozapis">
+        <input type="button" class="save-backup btn btn-success" value="Zapisz">
+        <input type="button" class="load-backup btn btn-alert hidden" value="Wczytaj">
+        <input type="button" class="clear-backup btn btn-danger" value="Wyczyść">
     </div>
 
     <div id="add-result" class="hidden">
-        <div class="adding-result"><span class="host"></span><input type="number" min="0" class="host-goals">:<input type="number" class="guest-goals"><span class="guest"></span><input type="button" class="add-result btn" value="Add result">
-            <span class="fast-goals-module">
-                <input type="button" class="host-fast-goals btn active" value="Host">
-                <input type="button" class="guest-fast-goals btn" value="Guest">
-                <input type="button" class="fast-goals btn" value="0">
-                <input type="button" class="fast-goals btn" value="1">
-                <input type="button" class="fast-goals btn" value="2">
-                <input type="button" class="fast-goals btn" value="3">
-                <input type="button" class="fast-goals btn" value="4">
-                <input type="button" class="fast-goals btn" value="5">
-                <input type="button" class="fast-goals btn" value="6">
-                <input type="button" class="fast-goals btn" value="7">
-                <input type="button" class="fast-goals btn" value="8">
-                <input type="button" class="fast-goals btn" value="9">
-            </span>
+        <div class="adding-result"><span class="host active"></span><input type="number" min="0" class="host-goals">:<input type="number" class="guest-goals"><span class="guest"></span><input type="button" class="add-result btn btn-success" value="Notuj">
+            <div class="fast-goals-module">
+                <input type="button" class="fast-goals btn btn-sm" value="0">
+                <input type="button" class="fast-goals btn btn-sm" value="1">
+                <input type="button" class="fast-goals btn btn-sm" value="2">
+                <input type="button" class="fast-goals btn btn-sm" value="3">
+                <input type="button" class="fast-goals btn btn-sm" value="4">
+                <input type="button" class="fast-goals btn btn-sm" value="5">
+                <input type="button" class="fast-goals btn btn-sm" value="6">
+                <input type="button" class="fast-goals btn btn-sm" value="7">
+                <input type="button" class="fast-goals btn btn-sm" value="8">
+                <input type="button" class="fast-goals btn btn-sm" value="9">
+            </div>
         </div>
-        <input type="button" class="goto-league-view btn hidden" value="League">
-        <input type="button" class="goto-cup-view btn hidden" value="Cup">
+        <input type="button" class="goto-league-view btn hidden" value="Liga">
+        <input type="button" class="goto-cup-view btn hidden" value="Puchar">
     </div>
 
     <div id="adding-teams" class="page">
-        <input type="text" min="3" class="team-name" placeholder="np.Giganci"></input><input type="button" class="add-team btn" value="Add"><input type="button" class="ready-teams btn hidden" value="Ready?"><br>
+        <input type="text" min="3" class="team-name" placeholder="np.Giganci"></input><input type="button" class="add-team btn" value="Dodaj"><input type="button" class="ready-teams btn hidden" value="Gotowe?"><br>
         <div class="table">
             <table class="added-teams">
                 <thead>
-                    <tr><th>Name</th><th>Delete</th></tr>
+                    <tr><th>Nazwa</th><th>Usuń</th></tr>
                 </thead>
                 <tbody></tbody>
             </table>
@@ -55,8 +55,8 @@
 
     <div id="tour-settings" class="page hidden">
         <input type="button" class="back-to-teams btn" value="Wstecz">
-        <input type="button" class="start-tour btn" value="Start tour">
-        <input type="text" min="3" class="tour-name" placeholder="np.Puchar Burmistrza Tczewa"></input>
+        <input type="button" class="start-tour btn" value="Rozpocznij">
+        <input type="text" min="3" class="tour-name" placeholder="np.Best Cup"></input>
         <select name="tour-type" id="tour-type">
             <option value="l" class="league-type">Liga</option>
             <option value="c" class="cup-type">Puchar</option>
@@ -70,7 +70,7 @@
         <div class="table">
             <table class="league-fixtures">
                 <thead>
-                    <tr><th>Host</th><th></th><th>Guest</th></tr>
+                    <tr><th>Gosp.</th><th>vs</th><th>Gość</th></tr>
                 </thead>
                 <tbody></tbody>
             </table>
@@ -79,7 +79,7 @@
         <div class="table">
             <table class="league-table">
                 <thead>
-                    <tr><th>#</th><th>Team</th><th>Points</th><th>Wins</th><th>Draws</th><th>Lost</th><th>G+</th><th>G-</th></tr>
+                    <tr><th>#</th><th>Nazwa</th><th>Pkt</th><th>Zw</th><th>Re</th><th>Po</th><th>G+</th><th>G-</th></tr>
                 </thead>
                 <tbody></tbody>
             </table>
@@ -90,7 +90,7 @@
         <div class="table">
             <table class="cup-fixtures">
                 <thead>
-                    <tr><th>Host</th><th>Result</th><th>Guest</th></tr>
+                    <tr><th>Gosp</th><th>vs</th><th>Gość</th></tr>
                 </thead>
                 <tbody></tbody>
             </table>

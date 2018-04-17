@@ -6,7 +6,7 @@ body {
 }
 
 .hidden {
-    display: none;
+    display: none !important;
 }
 
 .first,
@@ -37,8 +37,31 @@ body {
     text-shadow: 1px 1px 1px grey;
     vertical-align: middle;
 }
+
+.btn-sm {
+    width: 35px;
+    min-width: 35px;
+}
+
 .btn-active {
     filter: drop-shadow(2px 2px 2px #ffff00);
+}
+
+.btn-success {
+    background: linear-gradient(to right bottom, #eeeeee, #00bb00);
+}
+
+.btn-alert {
+    background: linear-gradient(to right bottom, #eeeeee, #ddaa00);
+}
+
+.btn-danger {
+    background: linear-gradient(to right bottom, #eeeeee, #ff0000);
+}
+
+#logo {
+    color: white;
+    text-shadow: 1px 1px 1px black;
 }
 
 input[type="text"], input[type="number"], select {
@@ -48,10 +71,11 @@ input[type="text"], input[type="number"], select {
     margin-right: 5px;
     padding-left: 5px;
     border-radius: 5px;
+    font-family: 'Varela Round', sans-serif;
     font-size: 20px;
 }
 
-.added-teams, .league-revenge {
+.added-teams, .league-revenge, .cup-revenge {
     font-size: 20px;
 }
 
@@ -64,6 +88,11 @@ input[type="text"], input[type="number"], select {
     border-radius: 5px;
     margin: 10px;
     background-color: rgb(168, 196, 219);
+    filter: drop-shadow(1px 1px 1px black);
+}
+
+#add-result {
+    display: inline-block;
 }
 
 .host-goals, .guest-goals {
@@ -78,6 +107,7 @@ input[type="text"], input[type="number"], select {
     padding: 10px;
     margin-bottom: 5px;
     background-color: rgb(96, 162, 216);
+    filter: drop-shadow(1px 1px 1px black);
 }
 #backup > * {
     margin: 5px;
@@ -135,8 +165,12 @@ table, th, td {
      cursor: pointer;
  }
 
+ .adding-result {
+    text-align: center;
+ }
+
  .adding-result > .host {
-     margin-right: 5px; 
+     margin-right: 5px;
  }
 
  .adding-result > .guest {
@@ -148,5 +182,9 @@ table, th, td {
 }
 
 .fast-goals-module {
-    margin-left: 30px;
+    margin-top: 20px;
+}
+
+.hiding-something {
+    color: blue;
 }
