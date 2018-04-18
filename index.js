@@ -877,7 +877,7 @@ class League {
             let resultCell = $(this);
             let numberOfVisibleRows = $('.league-fixtures tbody tr:visible').length;
             if (resultCell.text() && numberOfVisibleRows > 8) {
-                resultCell.parent().fadeOut(300);
+                resultCell.parent().hide(300);
                 addClass.call(DOM.leagueFixturesJQ.find('thead'), 'hiding-something');
             };
         });
@@ -1089,7 +1089,7 @@ class Cup {
             let resultCell = $(this);
             let numberOfVisibleRows = $('.cup-fixtures tbody tr:visible').length;
             if (resultCell.text() && numberOfVisibleRows > 7) {
-                resultCell.parent().fadeOut(300);
+                resultCell.parent().hide(300);
                 addClass.call(DOM.cupFixturesJQ.find('thead'), 'hiding-something');
             };
         });
@@ -1441,7 +1441,7 @@ function addResult() {
     let guestGoals = parseInt(DOM.addingResultGuestGoalsJQ.val());
     if (isNaN(hostGoals) || isNaN(guestGoals)) alert(ALERTS.NAN_IN_ADDING_RESULT[lang]);
     else tour.addResultToNextMatch(hostGoals, guestGoals);
-    DOM.addingResultHostGoalsJQ.focus();
+    // DOM.addingResultHostGoalsJQ.focus();
     fastGoalsForHost();
 };
 

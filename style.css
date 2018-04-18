@@ -134,10 +134,12 @@ th, td  {
 }
 
 .league-fixtures {
+    width: 100%;
     margin-right: 25px;
 }
 
 .league-table {
+    width: 100%;
     margin-left: 25px;
 }
 
@@ -148,7 +150,7 @@ table, th, td {
     background-color: none;
  }
 
- thead {
+th {
      background-color: #b8c9f5;
  }
 
@@ -196,4 +198,108 @@ table, th, td {
 
 .ad {
     display: inline-block;
+}
+
+@media (min-width: 750px) and (max-width: 1200px) {
+    .league-table th:not(:first-child):not(:nth-child(2)):not(:nth-child(3)),
+    .league-table td:not(:first-child):not(:nth-child(2)):not(:nth-child(3)) {
+        display: none;
+    }
+
+    .league-table {
+        margin-left: 5px;
+    }
+    .league-fixtures {
+        margin-left: calc(100%-25px);
+    }
+
+    #league-view .table:nth(1) {
+        width: 30%;
+    }
+
+    #league-view .table:nth(2) {
+        width: 65%;
+    }
+
+    .table {
+        margin-top: 0;
+    }
+}
+
+@media (max-width: 749px) {
+    #backup > * {
+        margin: 0;
+    }
+
+    .ready-teams {
+        margin-left: 5px;
+        margin-right: 0;
+    }
+    .add-result {
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .team-name, .tour-name {
+        max-width: 36%;
+    }
+
+    .tour-name {
+        max-width: 34%;
+        margin-right: 0;
+    }
+
+    #tour-type {
+        margin-top: 10px;
+    }
+
+    .fast-goals {
+        margin-bottom: 5px;
+    }
+
+    .league-table {
+        display: none;
+    }
+
+    .league-fixtures th:not(:first-child):not(:nth-child(2)):not(:nth-child(3)),
+    .league-fixtures td:not(:first-child):not(:nth-child(2)):not(:nth-child(3)) {
+        display: none;
+    }
+
+    .league-fixtures {
+        margin-left: 0px;
+        margin-right: 0px;
+        margin-bottom: 0px;
+    }
+
+    .table {
+        margin-top: 0;
+    }
+
+    #league-view .table:nth-child(1) {
+        width: 100%;
+    }
+
+    #league-view .table:nth-child(2) {
+        width: 100%;
+    }
+}
+
+@media (max-width: 570px) {
+    .auto-save-backup,
+    .clear-backup {
+        display: none;
+    }
+}
+
+@media (max-width: 350px) {
+    .load-backup {
+        display: none;
+    }
+}
+
+@media (max-width: 1200px) {
+    .goto-btns {
+        margin-bottom: 10px;
+    }
 }
